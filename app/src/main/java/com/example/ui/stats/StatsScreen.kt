@@ -4,6 +4,7 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.animateIntAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -12,6 +13,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ListAlt
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -31,6 +33,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.ui.AppViewModel
 import java.util.Calendar
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun StatsScreen(viewModel: AppViewModel, onScrollDirectionChanged: (Boolean) -> Unit = {}) {
     val sessions by viewModel.allSessions.collectAsStateWithLifecycle()
@@ -53,31 +56,15 @@ fun StatsScreen(viewModel: AppViewModel, onScrollDirectionChanged: (Boolean) -> 
             }
     }
 
-    val totalSolved = sessions.sumOf { it.questionsSolved }
-    
-    val varcCount = sessions.filter { it.section == "VARC" }.sumOf { it.questionsSolved }
-    val lrdiCount = sessions.filter { it.section == "LRDI" }.sumOf { it.questionsSolved }
-    val quantCount = sessions.filter { it.section == "Quant" }.sumOf { it.questionsSolved }
-
-    val today = Calendar.getInstance()
-    
-    val todaySolved = sessions.filter { 
-        val cal = Calendar.getInstance().apply { timeInMillis = it.date }
-        cal.get(Calendar.YEAR) == today.get(Calendar.YEAR) &&
-        cal.get(Calendar.DAY_OF_YEAR) == today.get(Calendar.DAY_OF_YEAR)
-    }.sumOf { it.questionsSolved }
-
-    val thisWeekSolved = sessions.filter { 
-        val cal = Calendar.getInstance().apply { timeInMillis = it.date }
-        cal.get(Calendar.YEAR) == today.get(Calendar.YEAR) &&
-        cal.get(Calendar.WEEK_OF_YEAR) == today.get(Calendar.WEEK_OF_YEAR)
-    }.sumOf { it.questionsSolved }
-
-    val thisMonthSolved = sessions.filter { 
-        val cal = Calendar.getInstance().apply { timeInMillis = it.date }
-        cal.get(Calendar.YEAR) == today.get(Calendar.YEAR) &&
-        cal.get(Calendar.MONTH) == today.get(Calendar.MONTH)
-    }.sumOf { it.questionsSolved }
+    val totalSolved by viewModel.totalSolved.collectAsStateWithLifecycle()
+    val varcCount by viewModel.varcCount.collectAsStateWithLifecycle()
+    val lrdiCount by viewModel.lrdiCount.collectAsStateWithLifecycle()
+    val quantCount by viewModel.quantCount.collectAsStateWithLifecycle()
+    val todaySolved by viewModel.todaySolved.collectAsStateWithLifecycle()
+    val thisWeekSolved by viewModel.thisWeekSolved.collectAsStateWithLifecycle()
+    val thisMonthSolved by viewModel.thisMonthSolved.collectAsStateWithLifecycle()
+    val lastWeekSolved by viewModel.lastWeekSolved.collectAsStateWithLifecycle()
+    val last7DaysSessions by viewModel.last7DaysSessions.collectAsStateWithLifecycle()
 
     var isVisible by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) {
@@ -143,14 +130,32 @@ fun StatsScreen(viewModel: AppViewModel, onScrollDirectionChanged: (Boolean) -> 
             Spacer(modifier = Modifier.height(32.dp))
 
             // Time Based Stats
+            val weeklyComparison = if (lastWeekSolved == 0) {
+                "No previous-week data"
+            } else {
+                val diff = thisWeekSolved - lastWeekSolved
+                val percent = (diff.toFloat() / lastWeekSolved.toFloat() * 100).toInt()
+                if (diff >= 0) "↑ $percent% from last week" else "↓ ${-percent}% from last week"
+            }
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 TimeStatCard(title = "Today", value = todaySolved.toString(), modifier = Modifier.weight(1f))
-                TimeStatCard(title = "This Week", value = thisWeekSolved.toString(), modifier = Modifier.weight(1f))
+                TimeStatCard(title = "This Week", value = thisWeekSolved.toString(), subtitle = weeklyComparison, modifier = Modifier.weight(1f))
                 TimeStatCard(title = "This Month", value = thisMonthSolved.toString(), modifier = Modifier.weight(1f))
             }
+
+            Spacer(modifier = Modifier.height(32.dp))
+
+            // 7-Day Activity
+            Text(
+                text = "7-Day Activity",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+            SevenDayActivityChart(last7DaysSessions)
 
             Spacer(modifier = Modifier.height(32.dp))
 
@@ -231,40 +236,85 @@ fun StatsScreen(viewModel: AppViewModel, onScrollDirectionChanged: (Boolean) -> 
                     visible = itemVisible,
                     enter = androidx.compose.animation.fadeIn(animationSpec = tween(300)) + androidx.compose.animation.slideInVertically(animationSpec = tween(300), initialOffsetY = { 50 })
                 ) {
-                    Card(
-                    modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                    shape = RoundedCornerShape(16.dp),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.1f)),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth().padding(16.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Column {
-                            val dateFormat = java.text.SimpleDateFormat("MMM dd, yyyy HH:mm", java.util.Locale.getDefault())
-                            Text(
-                                text = dateFormat.format(java.util.Date(session.date)),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                            Spacer(modifier = Modifier.height(4.dp))
-                            Text(
-                                text = session.section,
-                                style = MaterialTheme.typography.bodyLarge,
-                                fontWeight = FontWeight.SemiBold
-                            )
+                    val dismissState = rememberSwipeToDismissBoxState(
+                        confirmValueChange = {
+                            if (it == SwipeToDismissBoxValue.EndToStart) {
+                                viewModel.deleteSession(session)
+                                true
+                            } else false
                         }
-                        Text(
-                            text = "+${session.questionsSolved}",
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary
+                    )
+                    var showEditSheet by remember { mutableStateOf(false) }
+
+                    if (showEditSheet) {
+                        EditSessionSheet(
+                            session = session,
+                            onDismiss = { showEditSheet = false },
+                            onSave = { viewModel.updateSession(it) },
+                            onDelete = { viewModel.deleteSession(it) }
                         )
                     }
-                }
+
+                    SwipeToDismissBox(
+                        state = dismissState,
+                        enableDismissFromStartToEnd = false,
+                        backgroundContent = {
+                            val color = MaterialTheme.colorScheme.error
+                            Box(
+                                Modifier
+                                    .fillMaxSize()
+                                    .padding(bottom = 8.dp)
+                                    .clip(RoundedCornerShape(16.dp))
+                                    .background(color)
+                                    .padding(horizontal = 20.dp),
+                                contentAlignment = Alignment.CenterEnd
+                            ) {
+                                Icon(
+                                    Icons.Default.Delete,
+                                    contentDescription = "Delete",
+                                    tint = MaterialTheme.colorScheme.onError
+                                )
+                            }
+                        }
+                    ) {
+                        Card(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(bottom = 8.dp)
+                                .clickable { showEditSheet = true },
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                            shape = RoundedCornerShape(16.dp),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.1f)),
+                            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth().padding(16.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column {
+                                    val dateFormat = java.text.SimpleDateFormat("MMM dd, yyyy HH:mm", java.util.Locale.getDefault())
+                                    Text(
+                                        text = dateFormat.format(java.util.Date(session.date)),
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Text(
+                                        text = session.section,
+                                        style = MaterialTheme.typography.bodyLarge,
+                                        fontWeight = FontWeight.SemiBold
+                                    )
+                                }
+                                Text(
+                                    text = "+${session.questionsSolved}",
+                                    style = MaterialTheme.typography.titleLarge,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -272,7 +322,7 @@ fun StatsScreen(viewModel: AppViewModel, onScrollDirectionChanged: (Boolean) -> 
 }
 
 @Composable
-fun TimeStatCard(title: String, value: String, modifier: Modifier = Modifier) {
+fun TimeStatCard(title: String, value: String, subtitle: String? = null, modifier: Modifier = Modifier) {
     var animatedValue by remember { mutableIntStateOf(0) }
     LaunchedEffect(value) { animatedValue = value.toIntOrNull() ?: 0 }
     val displayedValue by animateIntAsState(targetValue = animatedValue, animationSpec = tween(500), label = "timeStat")
@@ -302,6 +352,15 @@ fun TimeStatCard(title: String, value: String, modifier: Modifier = Modifier) {
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurface
             )
+            if (subtitle != null) {
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = subtitle,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                )
+            }
         }
     }
 }

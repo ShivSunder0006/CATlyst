@@ -11,9 +11,11 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
@@ -21,6 +23,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -58,21 +62,22 @@ fun Modifier.bounceClick(
         .shadow(elevation = elevation, shape = shape, clip = false)
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun HomeScreen(viewModel: AppViewModel) {
     val haptic = LocalHapticFeedback.current
     val uiState by viewModel.homeUiState.collectAsStateWithLifecycle()
-    val sessions by viewModel.allSessions.collectAsStateWithLifecycle()
-
-    val totalSolved = sessions.sumOf { it.questionsSolved }
-    val todaySolved = sessions.filter { 
-        val calendarSession = Calendar.getInstance().apply { timeInMillis = it.date }
-        val today = Calendar.getInstance()
-        calendarSession.get(Calendar.YEAR) == today.get(Calendar.YEAR) &&
-        calendarSession.get(Calendar.DAY_OF_YEAR) == today.get(Calendar.DAY_OF_YEAR)
-    }.sumOf { it.questionsSolved }
+    val totalSolved by viewModel.totalSolved.collectAsStateWithLifecycle()
+    val todaySolved by viewModel.todaySolved.collectAsStateWithLifecycle()
 
     var showGoalPicker by remember { mutableStateOf(false) }
+
+    if (uiState.isLoading) {
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            CircularProgressIndicator()
+        }
+        return
+    }
     
     if (showGoalPicker) {
         GoalPickerSheet(
@@ -144,91 +149,133 @@ fun HomeScreen(viewModel: AppViewModel) {
             modifier = Modifier
                 .weight(1f)
                 .fillMaxWidth()
-                .clickable(
-                    interactionSource = remember { MutableInteractionSource() },
-                    indication = null,
-                    onClick = { showGoalPicker = true }
-                ),
-            contentAlignment = Alignment.Center
         ) {
-            val progressGradient = androidx.compose.ui.graphics.Brush.linearGradient(
-                colors = listOf(MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.secondary)
-            )
-            val trackColor = MaterialTheme.colorScheme.surfaceVariant
-            val goal = uiState.goal
-            val targetProgress = if (goal != null && goal > 0) uiState.currentSessionCount.toFloat() / goal.toFloat() else 0f
-            
-            val animatedProgress by animateFloatAsState(targetValue = targetProgress, animationSpec = tween(500), label = "circularProgress")
-            
-            Canvas(modifier = Modifier.size(240.dp)) {
-                val strokeWidth = 12.dp.toPx()
-                drawCircle(
-                    color = trackColor,
-                    radius = size.minDimension / 2 - strokeWidth / 2,
-                    style = Stroke(width = strokeWidth)
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null,
+                        onClick = { showGoalPicker = true }
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                val progressGradient = androidx.compose.ui.graphics.Brush.linearGradient(
+                    colors = listOf(MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.secondary)
                 )
+                val trackColor = MaterialTheme.colorScheme.surfaceVariant
+                val goal = uiState.goal
+                val targetProgress = if (goal != null && goal > 0) uiState.currentSessionCount.toFloat() / goal.toFloat() else 0f
                 
-                if (animatedProgress > 0) {
-                    drawArc(
-                        brush = progressGradient,
-                        startAngle = -90f,
-                        sweepAngle = 360f * animatedProgress.coerceIn(0f, 1f),
-                        useCenter = false,
-                        style = Stroke(width = strokeWidth, cap = StrokeCap.Round),
-                        size = Size(size.minDimension - strokeWidth, size.minDimension - strokeWidth),
-                        topLeft = Offset(strokeWidth / 2, strokeWidth / 2)
+                val animatedProgress by animateFloatAsState(targetValue = targetProgress, animationSpec = tween(500), label = "circularProgress")
+                
+                Canvas(modifier = Modifier.size(240.dp)) {
+                    val strokeWidth = 12.dp.toPx()
+                    drawCircle(
+                        color = trackColor,
+                        radius = size.minDimension / 2 - strokeWidth / 2,
+                        style = Stroke(width = strokeWidth)
+                    )
+                    
+                    if (animatedProgress > 0) {
+                        drawArc(
+                            brush = progressGradient,
+                            startAngle = -90f,
+                            sweepAngle = 360f * animatedProgress.coerceIn(0f, 1f),
+                            useCenter = false,
+                            style = Stroke(width = strokeWidth, cap = StrokeCap.Round),
+                            size = Size(size.minDimension - strokeWidth, size.minDimension - strokeWidth),
+                            topLeft = Offset(strokeWidth / 2, strokeWidth / 2)
+                        )
+                    }
+                }
+                
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = "CURRENT SESSION",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        letterSpacing = 2.sp
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Row(verticalAlignment = Alignment.Bottom) {
+                        AnimatedContent(
+                            targetState = uiState.currentSessionCount,
+                            transitionSpec = {
+                                if (targetState > initialState) {
+                                    (slideInVertically(animationSpec = tween(150)) { height -> height } + fadeIn(animationSpec = tween(150)))
+                                        .togetherWith(slideOutVertically(animationSpec = tween(150)) { height -> -height } + fadeOut(animationSpec = tween(150)))
+                                } else {
+                                    (slideInVertically(animationSpec = tween(150)) { height -> -height } + fadeIn(animationSpec = tween(150)))
+                                        .togetherWith(slideOutVertically(animationSpec = tween(150)) { height -> height } + fadeOut(animationSpec = tween(150)))
+                                }
+                            },
+                            label = "counter_animation"
+                        ) { count ->
+                            Text(
+                                text = count.toString(),
+                                fontSize = if (goal != null && goal > 0) 48.sp else 72.sp,
+                                fontWeight = FontWeight.Light,
+                                color = MaterialTheme.colorScheme.onBackground
+                            )
+                        }
+                        if (goal != null && goal > 0) {
+                            Text(
+                                text = " / $goal",
+                                fontSize = 48.sp,
+                                fontWeight = FontWeight.Light,
+                                color = MaterialTheme.colorScheme.onBackground
+                            )
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "Questions",
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
-            
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Text(
-                    text = "CURRENT SESSION",
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    letterSpacing = 2.sp
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                Row(verticalAlignment = Alignment.Bottom) {
-                    AnimatedContent(
-                        targetState = uiState.currentSessionCount,
-                        transitionSpec = {
-                            if (targetState > initialState) {
-                                (slideInVertically(animationSpec = tween(150)) { height -> height } + fadeIn(animationSpec = tween(150)))
-                                    .togetherWith(slideOutVertically(animationSpec = tween(150)) { height -> -height } + fadeOut(animationSpec = tween(150)))
-                            } else {
-                                (slideInVertically(animationSpec = tween(150)) { height -> -height } + fadeIn(animationSpec = tween(150)))
-                                    .togetherWith(slideOutVertically(animationSpec = tween(150)) { height -> height } + fadeOut(animationSpec = tween(150)))
+
+            if (uiState.currentSessionCount > 0 || uiState.goal != null) {
+                var showDiscardDialog by remember { mutableStateOf(false) }
+
+                if (showDiscardDialog) {
+                    AlertDialog(
+                        onDismissRequest = { showDiscardDialog = false },
+                        title = { Text("Discard Current Session?") },
+                        text = { Text("This will discard the current session and all unsaved progress.") },
+                        confirmButton = {
+                            Button(onClick = { showDiscardDialog = false }) {
+                                Text("Keep Session")
                             }
                         },
-                        label = "counter_animation"
-                    ) { count ->
-                        Text(
-                            text = count.toString(),
-                            fontSize = if (goal != null && goal > 0) 48.sp else 72.sp,
-                            fontWeight = FontWeight.Light,
-                            color = MaterialTheme.colorScheme.onBackground
-                        )
-                    }
-                    if (goal != null && goal > 0) {
-                        Text(
-                            text = " / $goal",
-                            fontSize = 48.sp,
-                            fontWeight = FontWeight.Light,
-                            color = MaterialTheme.colorScheme.onBackground
-                        )
-                    }
+                        dismissButton = {
+                            TextButton(onClick = {
+                                showDiscardDialog = false
+                                viewModel.discardSession()
+                            }) {
+                                Text("Discard")
+                            }
+                        }
+                    )
                 }
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = "Questions",
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+
+                IconButton(
+                    onClick = { showDiscardDialog = true },
+                    modifier = Modifier.align(Alignment.TopEnd).padding(8.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Close,
+                        contentDescription = "Discard Session",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
             }
         }
 
@@ -263,72 +310,91 @@ fun HomeScreen(viewModel: AppViewModel) {
                 
                 // Plus Button
                 val plusInteractionSource = remember { MutableInteractionSource() }
+                var showQuickAdd by remember { mutableStateOf(false) }
                 Box(
                     modifier = Modifier
                         .size(112.dp)
                         .bounceClick(plusInteractionSource, RoundedCornerShape(40.dp))
                         .clip(RoundedCornerShape(40.dp))
                         .background(MaterialTheme.colorScheme.primary)
-                        .clickable(interactionSource = plusInteractionSource, indication = androidx.compose.foundation.LocalIndication.current) { 
-                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                            viewModel.incrementCounter() 
-                        },
+                        .combinedClickable(
+                            interactionSource = plusInteractionSource,
+                            indication = androidx.compose.foundation.LocalIndication.current,
+                            onClick = {
+                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                viewModel.incrementCounter()
+                            },
+                            onLongClick = {
+                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                showQuickAdd = true
+                            }
+                        ),
                     contentAlignment = Alignment.Center
                 ) {
                     Canvas(modifier = Modifier.size(40.dp)) {
                         drawLine(
-                            color = Color.White,
-                            start = Offset(size.width / 2, 0f),
-                            end = Offset(size.width / 2, size.height),
+                            color = androidx.compose.ui.graphics.Color.White,
+                            start = androidx.compose.ui.geometry.Offset(size.width / 2, 0f),
+                            end = androidx.compose.ui.geometry.Offset(size.width / 2, size.height),
                             strokeWidth = 4.5.dp.toPx(),
-                            cap = StrokeCap.Round
+                            cap = androidx.compose.ui.graphics.StrokeCap.Round
                         )
                         drawLine(
-                            color = Color.White,
-                            start = Offset(0f, size.height / 2),
-                            end = Offset(size.width, size.height / 2),
+                            color = androidx.compose.ui.graphics.Color.White,
+                            start = androidx.compose.ui.geometry.Offset(0f, size.height / 2),
+                            end = androidx.compose.ui.geometry.Offset(size.width, size.height / 2),
                             strokeWidth = 4.5.dp.toPx(),
-                            cap = StrokeCap.Round
+                            cap = androidx.compose.ui.graphics.StrokeCap.Round
+                        )
+                    }
+                    androidx.compose.material3.DropdownMenu(
+                        expanded = showQuickAdd,
+                        onDismissRequest = { showQuickAdd = false },
+                        modifier = Modifier.background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(12.dp))
+                    ) {
+                        androidx.compose.material3.DropdownMenuItem(
+                            text = { Text("+5", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary) },
+                            onClick = {
+                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                viewModel.incrementCounter(5)
+                                showQuickAdd = false
+                            }
+                        )
+                        androidx.compose.material3.DropdownMenuItem(
+                            text = { Text("+10", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary) },
+                            onClick = {
+                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                viewModel.incrementCounter(10)
+                                showQuickAdd = false
+                            }
+                        )
+                        androidx.compose.material3.DropdownMenuItem(
+                            text = { Text("+20", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary) },
+                            onClick = {
+                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                viewModel.incrementCounter(20)
+                                showQuickAdd = false
+                            }
                         )
                     }
                 }
             }
 
             // Secondary Actions
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            Button(
+                onClick = { 
+                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                    viewModel.saveSession() 
+                },
+                modifier = Modifier.fillMaxWidth().height(56.dp).bounceClick(shape = RoundedCornerShape(16.dp)),
+                shape = RoundedCornerShape(16.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary
+                ),
+                elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp)
             ) {
-                Button(
-                    onClick = { 
-                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                        viewModel.resetSession() 
-                    },
-                    modifier = Modifier.weight(1f).height(56.dp).bounceClick(shape = RoundedCornerShape(16.dp)),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.secondary,
-                        contentColor = MaterialTheme.colorScheme.onSecondary
-                    )
-                ) {
-                    Text("Reset", fontWeight = FontWeight.SemiBold)
-                }
-                
-                Button(
-                    onClick = { 
-                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                        viewModel.saveSession() 
-                    },
-                    modifier = Modifier.weight(2f).height(56.dp).bounceClick(shape = RoundedCornerShape(16.dp)),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.primary,
-                        contentColor = MaterialTheme.colorScheme.onPrimary
-                    ),
-                    elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp)
-                ) {
-                    Text("Save Session", fontWeight = FontWeight.SemiBold)
-                }
+                Text("Save Session", fontWeight = FontWeight.SemiBold)
             }
         }
     }

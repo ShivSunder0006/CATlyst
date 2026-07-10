@@ -32,6 +32,9 @@ import com.example.ui.home.HomeScreen
 import com.example.ui.stats.StatsScreen
 import kotlinx.coroutines.launch
 
+import androidx.compose.material3.SnackbarResult
+import com.example.ui.UiEvent
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AppNavigation(viewModel: AppViewModel) {
@@ -40,9 +43,20 @@ fun AppNavigation(viewModel: AppViewModel) {
     val snackbarHostState = remember { SnackbarHostState() }
 
     LaunchedEffect(viewModel) {
-        viewModel.uiEvents.collect { message ->
-            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-            snackbarHostState.showSnackbar(message)
+        viewModel.uiEvents.collect { event ->
+            when (event) {
+                is UiEvent.ShowSnackbar -> {
+                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                    val result = snackbarHostState.showSnackbar(
+                        message = event.message,
+                        actionLabel = event.actionLabel,
+                        withDismissAction = true
+                    )
+                    if (result == SnackbarResult.ActionPerformed && event.sessionToRestore != null) {
+                        viewModel.restoreSession(event.sessionToRestore)
+                    }
+                }
+            }
         }
     }
     
