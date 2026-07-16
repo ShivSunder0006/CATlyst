@@ -19,6 +19,8 @@ class ActiveSessionPreferences(private val context: Context) {
     private val SECTION_KEY = stringPreferencesKey("current_section")
     private val GOAL_KEY = intPreferencesKey("current_goal")
     private val HAS_GOAL_KEY = stringPreferencesKey("has_goal")
+    private val HINT_SEEN_KEY = stringPreferencesKey("has_seen_target_hint")
+    private val THEME_KEY = stringPreferencesKey("app_theme")
 
     val activeSessionFlow: Flow<ActiveSessionData> = context.dataStore.data
         .map { preferences ->
@@ -26,9 +28,17 @@ class ActiveSessionPreferences(private val context: Context) {
             val section = preferences[SECTION_KEY] ?: "VARC"
             val hasGoal = preferences[HAS_GOAL_KEY] == "true"
             val goal = if (hasGoal) preferences[GOAL_KEY] else null
+            val hintSeen = preferences[HINT_SEEN_KEY] == "true"
+            val theme = preferences[THEME_KEY] ?: "PASTEL"
 
-            ActiveSessionData(count, section, goal)
+            ActiveSessionData(count, section, goal, hintSeen, theme)
         }
+
+    suspend fun setHintSeen() {
+        context.dataStore.edit { preferences ->
+            preferences[HINT_SEEN_KEY] = "true"
+        }
+    }
 
     suspend fun saveActiveSession(data: ActiveSessionData) {
         context.dataStore.edit { preferences ->
@@ -47,9 +57,15 @@ class ActiveSessionPreferences(private val context: Context) {
     suspend fun clearActiveSession() {
         context.dataStore.edit { preferences ->
             preferences.remove(COUNT_KEY)
-            preferences.remove(SECTION_KEY)
+            // Do not remove SECTION_KEY to remember the last selected section
             preferences.remove(HAS_GOAL_KEY)
             preferences.remove(GOAL_KEY)
+        }
+    }
+
+    suspend fun setTheme(theme: String) {
+        context.dataStore.edit { preferences ->
+            preferences[THEME_KEY] = theme
         }
     }
 }
@@ -57,5 +73,7 @@ class ActiveSessionPreferences(private val context: Context) {
 data class ActiveSessionData(
     val currentCount: Int = 0,
     val selectedSection: String = "VARC",
-    val goal: Int? = null
+    val goal: Int? = null,
+    val hintSeen: Boolean = false,
+    val theme: String = "PASTEL"
 )

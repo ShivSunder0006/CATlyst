@@ -14,6 +14,12 @@ import com.example.ui.AppViewModelFactory
 import com.example.ui.navigation.AppNavigation
 import com.example.ui.theme.MyApplicationTheme
 
+import android.provider.Settings
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.platform.LocalContext
+import com.example.ui.theme.AppThemeType
+
 class MainActivity : ComponentActivity() {
   override fun onCreate(savedInstanceState: Bundle?) {
     installSplashScreen()
@@ -29,7 +35,19 @@ class MainActivity : ComponentActivity() {
     }
 
     setContent {
-      MyApplicationTheme {
+      val themeString by viewModel.currentTheme.collectAsState()
+      val themeType = try {
+          AppThemeType.valueOf(themeString)
+      } catch (e: Exception) {
+          AppThemeType.PASTEL
+      }
+      
+      val context = LocalContext.current
+      val transitionScale = Settings.Global.getFloat(context.contentResolver, Settings.Global.TRANSITION_ANIMATION_SCALE, 1f)
+      val animatorScale = Settings.Global.getFloat(context.contentResolver, Settings.Global.ANIMATOR_DURATION_SCALE, 1f)
+      val isReducedMotion = transitionScale == 0f || animatorScale == 0f
+
+      MyApplicationTheme(themeType = themeType, isReducedMotion = isReducedMotion) {
         AppNavigation(viewModel = viewModel)
       }
     }

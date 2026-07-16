@@ -20,17 +20,30 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
+import kotlinx.coroutines.flow.map
+
 data class HomeUiState(
     val currentSessionCount: Int = 0,
     val selectedSection: String = "VARC", // VARC, LRDI, Quant
     val goal: Int? = null,
-    val isLoading: Boolean = true
+    val isLoading: Boolean = true,
+    val hintSeen: Boolean = false
 )
 
 class AppViewModel(
     private val repository: SessionRepository,
     private val activeSessionPreferences: ActiveSessionPreferences
 ) : ViewModel() {
+
+    val currentTheme: StateFlow<String> = activeSessionPreferences.activeSessionFlow
+        .map { it.theme }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "PASTEL")
+
+    fun setTheme(theme: String) {
+        viewModelScope.launch {
+            activeSessionPreferences.setTheme(theme)
+        }
+    }
 
     val allSessions: StateFlow<List<Session>> = repository.allSessions
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
@@ -124,9 +137,17 @@ class AppViewModel(
                     currentSessionCount = activeSession.currentCount,
                     selectedSection = activeSession.selectedSection,
                     goal = activeSession.goal,
-                    isLoading = false
+                    isLoading = false,
+                    hintSeen = activeSession.hintSeen
                 )
             }
+        }
+    }
+
+    fun dismissHint() {
+        _homeUiState.update { it.copy(hintSeen = true) }
+        viewModelScope.launch {
+            activeSessionPreferences.setHintSeen()
         }
     }
 
@@ -172,24 +193,28 @@ class AppViewModel(
         persistSession()
     }
 
-    fun saveSession() {
-        val state = _homeUiState.value
-        if (state.currentSessionCount == 0) {
-            return
-        }
+    private var isSaving = false
 
+    fun saveSession() {
+        if (isSaving) return
+        val state = _homeUiState.value
+        if (state.currentSessionCount == 0) return
+
+        isSaving = true
         val count = state.currentSessionCount
         val section = state.selectedSection
+        val goal = state.goal
 
         viewModelScope.launch {
-            repository.insertSession(
-                Session(
-                    date = System.currentTimeMillis(),
-                    section = section,
-                    questionsSolved = count,
-                    goal = state.goal
-                )
+            val sessionToSave = Session(
+                date = System.currentTimeMillis(),
+                section = section,
+                questionsSolved = count,
+                goal = goal
             )
+            val id = repository.insertSession(sessionToSave)
+            val savedSession = sessionToSave.copy(id = id.toInt())
+
             // Reset after save
             _homeUiState.update { 
                 it.copy(
@@ -198,7 +223,8 @@ class AppViewModel(
                 )
             }
             activeSessionPreferences.clearActiveSession()
-            _uiEvents.emit(UiEvent.ShowSnackbar("$count $section questions saved."))
+            _uiEvents.emit(UiEvent.ShowSnackbar("$count $section questions saved.", actionLabel = "Undo", sessionToRestore = savedSession, isUndoSave = true))
+            isSaving = false
         }
     }
 
@@ -216,15 +242,29 @@ class AppViewModel(
         }
     }
 
-    fun restoreSession(session: Session) {
+    fun restoreSession(session: Session, isUndoSave: Boolean = false) {
         viewModelScope.launch {
-            repository.insertSession(session)
+            if (isUndoSave) {
+                // Delete the saved session
+                repository.deleteSession(session)
+                // Restore active state
+                _homeUiState.update {
+                    it.copy(
+                        currentSessionCount = session.questionsSolved,
+                        selectedSection = session.section,
+                        goal = session.goal
+                    )
+                }
+                persistSession()
+            } else {
+                repository.insertSession(session)
+            }
         }
     }
 }
 
 sealed class UiEvent {
-    data class ShowSnackbar(val message: String, val actionLabel: String? = null, val sessionToRestore: Session? = null) : UiEvent()
+    data class ShowSnackbar(val message: String, val actionLabel: String? = null, val sessionToRestore: Session? = null, val isUndoSave: Boolean = false) : UiEvent()
 }
 
 class AppViewModelFactory(

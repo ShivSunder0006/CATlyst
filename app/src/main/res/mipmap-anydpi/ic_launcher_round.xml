@@ -4,6 +4,24 @@
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
+    <path
+        android:pathData="M 54 0 A 54 54 0 1 0 108 54 A 54 54 0 0 0 54 0 Z">
+        <aapt:attr name="android:fillColor" xmlns:aapt="http://schemas.android.com/aapt">
+            <gradient
+                android:startX="0"
+                android:startY="0"
+                android:endX="108"
+                android:endY="108"
+                android:type="linear">
+                <item
+                    android:color="#C6E7FF"
+                    android:offset="0.0" />
+                <item
+                    android:color="#D4F6FF"
+                    android:offset="1.0" />
+            </gradient>
+        </aapt:attr>
+    </path>
     <group>
         <path
             android:strokeColor="#1F2937"

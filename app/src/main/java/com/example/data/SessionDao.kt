@@ -26,7 +26,7 @@ interface SessionDao {
     fun getSessionsBetween(startDate: Long, endDate: Long): Flow<List<Session>>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertSession(session: Session)
+    suspend fun insertSession(session: Session): Long
 
     @Update
     suspend fun updateSession(session: Session)

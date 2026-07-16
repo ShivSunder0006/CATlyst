@@ -16,8 +16,8 @@ class SessionRepository(private val sessionDao: SessionDao) {
 
     fun getSessionsBetween(startDate: Long, endDate: Long): Flow<List<Session>> = sessionDao.getSessionsBetween(startDate, endDate)
 
-    suspend fun insertSession(session: Session) {
-        sessionDao.insertSession(session)
+    suspend fun insertSession(session: Session): Long {
+        return sessionDao.insertSession(session)
     }
     
     suspend fun updateSession(session: Session) {

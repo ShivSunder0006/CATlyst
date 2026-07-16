@@ -36,6 +36,15 @@ import java.util.Calendar
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun StatsScreen(viewModel: AppViewModel, onScrollDirectionChanged: (Boolean) -> Unit = {}) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val isReducedMotion = remember(context) {
+        android.provider.Settings.Global.getFloat(
+            context.contentResolver,
+            android.provider.Settings.Global.ANIMATOR_DURATION_SCALE,
+            1f
+        ) == 0f
+    }
+    
     val sessions by viewModel.allSessions.collectAsStateWithLifecycle()
     val listState = rememberLazyListState()
 
@@ -82,18 +91,39 @@ fun StatsScreen(viewModel: AppViewModel, onScrollDirectionChanged: (Boolean) -> 
         item {
             androidx.compose.animation.AnimatedVisibility(
                 visible = isVisible,
-                enter = androidx.compose.animation.fadeIn(animationSpec = tween(300)) + androidx.compose.animation.slideInVertically(animationSpec = tween(300), initialOffsetY = { 50 })
+                enter = if (isReducedMotion) androidx.compose.animation.fadeIn(animationSpec = tween(300)) 
+                        else androidx.compose.animation.fadeIn(animationSpec = tween(300)) + androidx.compose.animation.slideInVertically(animationSpec = tween(300), initialOffsetY = { 50 })
             ) {
                 Column {
                     Text(
                         text = "Statistics",
-                style = MaterialTheme.typography.headlineLarge,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onBackground
-            )
-            Spacer(modifier = Modifier.height(24.dp))
-
-            // Overall Stats
+                        style = MaterialTheme.typography.headlineLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onBackground
+                    )
+                    Spacer(modifier = Modifier.height(24.dp))
+                    
+                    if (sessions.isEmpty()) {
+                        Box(
+                            modifier = Modifier.fillMaxWidth().padding(vertical = 48.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text(
+                                    text = "No questions tracked yet.",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text(
+                                    text = "Save your first session to see your progress.",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                    } else {
+                        // Overall Stats
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
@@ -188,6 +218,12 @@ fun StatsScreen(viewModel: AppViewModel, onScrollDirectionChanged: (Boolean) -> 
                 color = MaterialTheme.colorScheme.tertiary
             )
 
+                    } // End of else block
+                }
+            }
+        }
+        
+        item {
             Spacer(modifier = Modifier.height(32.dp))
             
             Text(
@@ -196,8 +232,6 @@ fun StatsScreen(viewModel: AppViewModel, onScrollDirectionChanged: (Boolean) -> 
                 fontWeight = FontWeight.Bold
             )
             Spacer(modifier = Modifier.height(16.dp))
-                }
-            }
         }
 
         val recentSessions = sessions.take(5)
@@ -217,8 +251,15 @@ fun StatsScreen(viewModel: AppViewModel, onScrollDirectionChanged: (Boolean) -> 
                     )
                     Spacer(modifier = Modifier.height(16.dp))
                     Text(
-                        text = "No sessions yet.\nStart solving questions!",
-                        style = MaterialTheme.typography.bodyLarge,
+                        text = "No saved sessions yet.",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "Your completed study sessions will appear here.",
+                        style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         textAlign = androidx.compose.ui.text.style.TextAlign.Center
                     )
@@ -234,7 +275,8 @@ fun StatsScreen(viewModel: AppViewModel, onScrollDirectionChanged: (Boolean) -> 
                 }
                 androidx.compose.animation.AnimatedVisibility(
                     visible = itemVisible,
-                    enter = androidx.compose.animation.fadeIn(animationSpec = tween(300)) + androidx.compose.animation.slideInVertically(animationSpec = tween(300), initialOffsetY = { 50 })
+                    enter = if (isReducedMotion) androidx.compose.animation.fadeIn(animationSpec = tween(300)) 
+                            else androidx.compose.animation.fadeIn(animationSpec = tween(300)) + androidx.compose.animation.slideInVertically(animationSpec = tween(300), initialOffsetY = { 50 })
                 ) {
                     val dismissState = rememberSwipeToDismissBoxState(
                         confirmValueChange = {

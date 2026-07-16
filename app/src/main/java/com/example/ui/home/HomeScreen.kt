@@ -44,6 +44,11 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.selected
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.ui.AppViewModel
 import com.example.ui.HomeUiState
@@ -66,6 +71,15 @@ fun Modifier.bounceClick(
 @Composable
 fun HomeScreen(viewModel: AppViewModel) {
     val haptic = LocalHapticFeedback.current
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val isReducedMotion = remember(context) {
+        android.provider.Settings.Global.getFloat(
+            context.contentResolver,
+            android.provider.Settings.Global.ANIMATOR_DURATION_SCALE,
+            1f
+        ) == 0f
+    }
+    
     val uiState by viewModel.homeUiState.collectAsStateWithLifecycle()
     val totalSolved by viewModel.totalSolved.collectAsStateWithLifecycle()
     val todaySolved by viewModel.todaySolved.collectAsStateWithLifecycle()
@@ -120,6 +134,10 @@ fun HomeScreen(viewModel: AppViewModel) {
                             shape = RoundedCornerShape(50)
                         )
                         .clickable { viewModel.updateSection(section) }
+                        .semantics {
+                            selected = isSelected
+                            role = Role.Tab
+                        }
                         .padding(horizontal = 20.dp, vertical = 10.dp),
                     contentAlignment = Alignment.Center
                 ) {
@@ -156,19 +174,43 @@ fun HomeScreen(viewModel: AppViewModel) {
                     .clickable(
                         interactionSource = remember { MutableInteractionSource() },
                         indication = null,
-                        onClick = { showGoalPicker = true }
-                    ),
+                        onClickLabel = "Change target",
+                        onClick = { 
+                            showGoalPicker = true 
+                            if (!uiState.hintSeen) viewModel.dismissHint()
+                        }
+                    )
+                    .semantics {
+                        val g = uiState.goal
+                        val targetDesc = if (g != null && g > 0) "Target $g." else "No target set."
+                        contentDescription = "${uiState.currentSessionCount} questions completed. $targetDesc Double tap to change target."
+                        role = Role.Button
+                    },
                 contentAlignment = Alignment.Center
             ) {
+                val goal = uiState.goal
+                val count = uiState.currentSessionCount
+                val targetProgress = if (goal != null && goal > 0) count.toFloat() / goal.toFloat() else 0f
+                
+                var showCompletion by remember { mutableStateOf(false) }
+                LaunchedEffect(count, goal) {
+                    if (goal != null && goal > 0 && count == goal && targetProgress == 1f) {
+                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        showCompletion = true
+                    }
+                }
+                
                 val progressGradient = androidx.compose.ui.graphics.Brush.linearGradient(
-                    colors = listOf(MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.secondary)
+                    colors = if (showCompletion && targetProgress >= 1f) 
+                        listOf(MaterialTheme.colorScheme.tertiary, MaterialTheme.colorScheme.primary)
+                    else 
+                        listOf(MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.secondary)
                 )
                 val trackColor = MaterialTheme.colorScheme.surfaceVariant
-                val goal = uiState.goal
-                val targetProgress = if (goal != null && goal > 0) uiState.currentSessionCount.toFloat() / goal.toFloat() else 0f
                 
                 val animatedProgress by animateFloatAsState(targetValue = targetProgress, animationSpec = tween(500), label = "circularProgress")
                 
+                val errorColor = MaterialTheme.colorScheme.error
                 Canvas(modifier = Modifier.size(240.dp)) {
                     val strokeWidth = 12.dp.toPx()
                     drawCircle(
@@ -188,24 +230,42 @@ fun HomeScreen(viewModel: AppViewModel) {
                             topLeft = Offset(strokeWidth / 2, strokeWidth / 2)
                         )
                     }
+                    if (animatedProgress > 1f) {
+                        drawArc(
+                            color = errorColor,
+                            startAngle = -90f,
+                            sweepAngle = 360f * (animatedProgress - 1f).coerceIn(0f, 1f),
+                            useCenter = false,
+                            style = Stroke(width = strokeWidth, cap = StrokeCap.Round),
+                            size = Size(size.minDimension - strokeWidth, size.minDimension - strokeWidth),
+                            topLeft = Offset(strokeWidth / 2, strokeWidth / 2)
+                        )
+                    }
                 }
                 
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Text(
-                        text = "CURRENT SESSION",
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        letterSpacing = 2.sp
-                    )
+                    AnimatedContent(
+                        targetState = if (showCompletion && targetProgress >= 1f) "TARGET REACHED" else "CURRENT SESSION",
+                        label = "session_title_anim"
+                    ) { text ->
+                        Text(
+                            text = text,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = if (text == "TARGET REACHED") MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                            letterSpacing = 2.sp
+                        )
+                    }
                     Spacer(modifier = Modifier.height(4.dp))
                     Row(verticalAlignment = Alignment.Bottom) {
                         AnimatedContent(
-                            targetState = uiState.currentSessionCount,
+                            targetState = count,
                             transitionSpec = {
-                                if (targetState > initialState) {
+                                if (isReducedMotion) {
+                                    fadeIn(animationSpec = tween(150)).togetherWith(fadeOut(animationSpec = tween(150)))
+                                } else if (targetState > initialState) {
                                     (slideInVertically(animationSpec = tween(150)) { height -> height } + fadeIn(animationSpec = tween(150)))
                                         .togetherWith(slideOutVertically(animationSpec = tween(150)) { height -> -height } + fadeOut(animationSpec = tween(150)))
                                 } else {
@@ -214,9 +274,9 @@ fun HomeScreen(viewModel: AppViewModel) {
                                 }
                             },
                             label = "counter_animation"
-                        ) { count ->
+                        ) { c ->
                             Text(
-                                text = count.toString(),
+                                text = c.toString(),
                                 fontSize = if (goal != null && goal > 0) 48.sp else 72.sp,
                                 fontWeight = FontWeight.Light,
                                 color = MaterialTheme.colorScheme.onBackground
@@ -238,6 +298,19 @@ fun HomeScreen(viewModel: AppViewModel) {
                         fontWeight = FontWeight.Medium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
+                }
+
+                if (!uiState.hintSeen) {
+                    Box(modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 24.dp).offset(y = 48.dp)) {
+                        Text(
+                            text = "Tap the number to set a target",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier
+                                .background(MaterialTheme.colorScheme.primaryContainer, RoundedCornerShape(16.dp))
+                                .padding(horizontal = 12.dp, vertical = 6.dp)
+                        )
+                    }
                 }
             }
 
@@ -271,7 +344,7 @@ fun HomeScreen(viewModel: AppViewModel) {
                 ) {
                     Icon(
                         imageVector = Icons.Default.Close,
-                        contentDescription = "Discard Session",
+                        contentDescription = "Discard current session",
                         tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
                         modifier = Modifier.size(24.dp)
                     )
@@ -297,9 +370,17 @@ fun HomeScreen(viewModel: AppViewModel) {
                         .bounceClick(minusInteractionSource)
                         .clip(RoundedCornerShape(24.dp))
                         .background(MaterialTheme.colorScheme.primaryContainer)
-                        .clickable(interactionSource = minusInteractionSource, indication = androidx.compose.foundation.LocalIndication.current) { 
+                        .clickable(
+                            interactionSource = minusInteractionSource, 
+                            indication = androidx.compose.foundation.LocalIndication.current,
+                            onClickLabel = "Remove one question"
+                        ) { 
                             haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                             viewModel.decrementCounter() 
+                        }
+                        .semantics {
+                            contentDescription = "Remove one question"
+                            role = Role.Button
                         },
                     contentAlignment = Alignment.Center
                 ) {
@@ -320,6 +401,7 @@ fun HomeScreen(viewModel: AppViewModel) {
                         .combinedClickable(
                             interactionSource = plusInteractionSource,
                             indication = androidx.compose.foundation.LocalIndication.current,
+                            onClickLabel = "Add one question",
                             onClick = {
                                 haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                 viewModel.incrementCounter()
@@ -328,19 +410,24 @@ fun HomeScreen(viewModel: AppViewModel) {
                                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                 showQuickAdd = true
                             }
-                        ),
+                        )
+                        .semantics {
+                            contentDescription = "Add one question"
+                            role = Role.Button
+                        },
                     contentAlignment = Alignment.Center
                 ) {
+                    val iconColor = MaterialTheme.colorScheme.onPrimary
                     Canvas(modifier = Modifier.size(40.dp)) {
                         drawLine(
-                            color = androidx.compose.ui.graphics.Color.White,
+                            color = iconColor,
                             start = androidx.compose.ui.geometry.Offset(size.width / 2, 0f),
                             end = androidx.compose.ui.geometry.Offset(size.width / 2, size.height),
                             strokeWidth = 4.5.dp.toPx(),
                             cap = androidx.compose.ui.graphics.StrokeCap.Round
                         )
                         drawLine(
-                            color = androidx.compose.ui.graphics.Color.White,
+                            color = iconColor,
                             start = androidx.compose.ui.geometry.Offset(0f, size.height / 2),
                             end = androidx.compose.ui.geometry.Offset(size.width, size.height / 2),
                             strokeWidth = 4.5.dp.toPx(),
@@ -499,7 +586,7 @@ fun GoalPickerSheet(
                         .padding(horizontal = 32.dp)
                         .height(itemHeight)
                         .clip(RoundedCornerShape(16.dp))
-                        .background(androidx.compose.ui.graphics.Color(0xFFC6E7FF).copy(alpha = 0.3f))
+                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.3f))
                 )
                 
                 androidx.compose.foundation.lazy.LazyColumn(
@@ -565,7 +652,7 @@ fun GoalPickerSheet(
                     onClick = { onGoalSelected(selectedValue) },
                     modifier = Modifier.bounceClick(shape = RoundedCornerShape(16.dp)),
                     shape = RoundedCornerShape(16.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = androidx.compose.ui.graphics.Color(0xFFC6E7FF), contentColor = androidx.compose.ui.graphics.Color(0xFF1F2937))
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary, contentColor = MaterialTheme.colorScheme.onPrimary)
                 ) {
                     Text("Done")
                 }
