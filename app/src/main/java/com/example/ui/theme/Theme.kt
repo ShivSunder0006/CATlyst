@@ -1,90 +1,108 @@
 package com.example.ui.theme
 
-import android.os.Build
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.dynamicDarkColorScheme
-import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.graphics.toArgb
+import androidx.core.graphics.ColorUtils
 
-enum class AppThemeType {
-    PASTEL, NEON, VIBRANT, MIDNIGHT
+enum class AppThemeType(val seedColor: Color) {
+    PASTEL(Color(0xFF81B0FF)),
+    NEON(Color(0xFF00FFCC)),
+    VIBRANT(Color(0xFFFF3366)),
+    FOREST(Color(0xFF2E8B57))
 }
 
-private val PastelLightColorScheme = lightColorScheme(
-    primary = PastelPrimary, onPrimary = PastelTextPrimary,
-    primaryContainer = PastelPrimary, onPrimaryContainer = PastelTextPrimary,
-    secondary = PastelSecondary, onSecondary = PastelTextPrimary,
-    secondaryContainer = PastelSecondary, onSecondaryContainer = PastelTextPrimary,
-    tertiary = PastelTertiary, onTertiary = PastelTextPrimary,
-    background = PastelBackground, onBackground = PastelTextPrimary,
-    surface = PastelSurface, onSurface = PastelTextPrimary,
-    surfaceVariant = PastelSurfaceVariant, onSurfaceVariant = PastelTextSecondary,
-)
+fun generateColorScheme(themeType: AppThemeType, isDark: Boolean): ColorScheme {
+    val primary = themeType.seedColor
+    val isForest = themeType == AppThemeType.FOREST
+    val hsl = FloatArray(3)
+    ColorUtils.colorToHSL(primary.toArgb(), hsl)
 
-private val PastelDarkColorScheme = darkColorScheme(
-    primary = PastelPrimary, onPrimary = PastelTextPrimary,
-    primaryContainer = PastelPrimary, onPrimaryContainer = PastelTextPrimary,
-    secondary = PastelSecondary, onSecondary = PastelTextPrimary,
-    secondaryContainer = PastelSecondary, onSecondaryContainer = PastelTextPrimary,
-    tertiary = PastelTertiary, onTertiary = PastelTextPrimary,
-    background = PastelDarkBackground, onBackground = PastelDarkTextPrimary,
-    surface = PastelDarkSurface, onSurface = PastelDarkTextPrimary,
-    surfaceVariant = PastelDarkSurfaceVariant, onSurfaceVariant = PastelDarkTextPrimary,
-)
+    val hue = hsl[0]
+    val saturation = hsl[1]
 
-private val NeonColorScheme = darkColorScheme(
-    primary = NeonPrimary, onPrimary = NeonBackground,
-    primaryContainer = NeonPrimary, onPrimaryContainer = NeonBackground,
-    secondary = NeonSecondary, onSecondary = NeonBackground,
-    secondaryContainer = NeonSecondary, onSecondaryContainer = NeonBackground,
-    tertiary = NeonTertiary, onTertiary = NeonBackground,
-    background = NeonBackground, onBackground = NeonTextPrimary,
-    surface = NeonSurface, onSurface = NeonTextPrimary,
-    surfaceVariant = NeonSurfaceVariant, onSurfaceVariant = NeonTextSecondary,
-)
+    val secondaryHue = (hue + 30) % 360f
+    val tertiaryHue = (hue + 60) % 360f
 
-private val VibrantLightColorScheme = lightColorScheme(
-    primary = VibrantPrimary, onPrimary = VibrantSurface,
-    primaryContainer = VibrantPrimary, onPrimaryContainer = VibrantSurface,
-    secondary = VibrantSecondary, onSecondary = VibrantSurface,
-    secondaryContainer = VibrantSecondary, onSecondaryContainer = VibrantSurface,
-    tertiary = VibrantTertiary, onTertiary = VibrantTextPrimary,
-    background = VibrantBackground, onBackground = VibrantTextPrimary,
-    surface = VibrantSurface, onSurface = VibrantTextPrimary,
-    surfaceVariant = VibrantSurfaceVariant, onSurfaceVariant = VibrantTextSecondary,
-)
+    val primaryColor = if (isForest) { if (isDark) Color(0xFF81C784) else Color(0xFF2E8B57) } else Color(ColorUtils.HSLToColor(floatArrayOf(hue, saturation, if (isDark) 0.65f else 0.45f)))
+    val onPrimaryColor = if (isDark) Color(0xFF1A1A1A) else Color.White
+    val primaryContainer = if (isForest) { if (isDark) Color(0xFF1B5E20) else Color(0xFFA5D6A7) } else Color(ColorUtils.HSLToColor(floatArrayOf(hue, saturation, if (isDark) 0.3f else 0.9f)))
+    val onPrimaryContainer = if (isForest) { if (isDark) Color(0xFFA5D6A7) else Color(0xFF003300) } else Color(ColorUtils.HSLToColor(floatArrayOf(hue, saturation, if (isDark) 0.9f else 0.15f)))
 
-private val VibrantDarkColorScheme = darkColorScheme(
-    primary = VibrantPrimary, onPrimary = VibrantDarkSurface,
-    primaryContainer = VibrantPrimary, onPrimaryContainer = VibrantDarkSurface,
-    secondary = VibrantSecondary, onSecondary = VibrantDarkSurface,
-    secondaryContainer = VibrantSecondary, onSecondaryContainer = VibrantDarkSurface,
-    tertiary = VibrantTertiary, onTertiary = VibrantDarkSurface,
-    background = VibrantDarkBackground, onBackground = VibrantDarkTextPrimary,
-    surface = VibrantDarkSurface, onSurface = VibrantDarkTextPrimary,
-    surfaceVariant = VibrantDarkSurfaceVariant, onSurfaceVariant = VibrantDarkTextSecondary,
-)
+    val secondaryColor = if (isForest) { if (isDark) Color(0xFFA1B59C) else Color(0xFF75906E) } else Color(ColorUtils.HSLToColor(floatArrayOf(secondaryHue, saturation * 0.8f, if (isDark) 0.7f else 0.45f)))
+    val onSecondaryColor = if (isDark) Color(0xFF1A1A1A) else Color.White
+    val secondaryContainer = if (isForest) { if (isDark) Color(0xFF3B4D36) else Color(0xFFD4E3D0) } else Color(ColorUtils.HSLToColor(floatArrayOf(secondaryHue, saturation * 0.8f, if (isDark) 0.3f else 0.9f)))
+    val onSecondaryContainer = if (isForest) { if (isDark) Color(0xFFD4E3D0) else Color(0xFF1D2919) } else Color(ColorUtils.HSLToColor(floatArrayOf(secondaryHue, saturation * 0.8f, if (isDark) 0.9f else 0.15f)))
 
-private val MidnightColorScheme = darkColorScheme(
-    primary = MidnightPrimary, onPrimary = MidnightBackground,
-    primaryContainer = MidnightPrimary, onPrimaryContainer = MidnightBackground,
-    secondary = MidnightSecondary, onSecondary = MidnightBackground,
-    secondaryContainer = MidnightSecondary, onSecondaryContainer = MidnightBackground,
-    tertiary = MidnightTertiary, onTertiary = MidnightBackground,
-    background = MidnightBackground, onBackground = MidnightTextPrimary,
-    surface = MidnightSurface, onSurface = MidnightTextPrimary,
-    surfaceVariant = MidnightSurfaceVariant, onSurfaceVariant = MidnightTextSecondary,
-)
+    // Accent: Warm Amber or Gold
+    val tertiaryColor = if (isForest) { if (isDark) Color(0xFFFFCA28) else Color(0xFFFFA000) } else Color(ColorUtils.HSLToColor(floatArrayOf(tertiaryHue, saturation * 0.7f, if (isDark) 0.7f else 0.45f)))
+    val onTertiaryColor = if (isDark) Color(0xFF1A1A1A) else Color.White
+    val tertiaryContainer = if (isForest) { if (isDark) Color(0xFF8F5A00) else Color(0xFFFFECB3) } else Color(ColorUtils.HSLToColor(floatArrayOf(tertiaryHue, saturation * 0.7f, if (isDark) 0.3f else 0.9f)))
+    val onTertiaryContainer = if (isForest) { if (isDark) Color(0xFFFFECB3) else Color(0xFF402500) } else Color(ColorUtils.HSLToColor(floatArrayOf(tertiaryHue, saturation * 0.7f, if (isDark) 0.9f else 0.15f)))
+
+    val errorColor = Color(0xFFB3261E)
+    val errorContainer = Color(0xFFF9DEDC)
+    val onErrorColor = Color.White
+    val onErrorContainer = Color(0xFF410E0B)
+
+    val errorColorDark = Color(0xFFF2B8B5)
+    val errorContainerDark = Color(0xFF8C1D18)
+    val onErrorColorDark = Color(0xFF601410)
+    val onErrorContainerDark = Color(0xFFF9DEDC)
+
+    val background = if (isDark) { if (isForest) Color(0xFF171A18) else Color(0xFF121212) } else { if (isForest) Color(0xFFF9FBF9) else Color(0xFFFDFDFD) }
+    val onBackground = if (isDark) Color(0xFFE3E3E3) else Color(0xFF1C1C1C)
+    
+    val surface = if (isDark) { if (isForest) Color(0xFF1D211F) else Color(0xFF1E1E1E) } else { if (isForest) Color(0xFFF5F8F5) else Color(0xFFFFFFFF) }
+    val onSurface = if (isDark) Color(0xFFE3E3E3) else Color(0xFF1C1C1C)
+
+    val surfaceSat = if (isForest && isDark) 0f else saturation
+
+    val surfaceVariant = if (isForest) { if (isDark) Color(0xFF3A423C) else Color(0xFFE3EAE4) } else Color(ColorUtils.HSLToColor(floatArrayOf(hue, surfaceSat * 0.15f, if (isDark) 0.25f else 0.92f)))
+    val onSurfaceVariant = if (isForest) { if (isDark) Color(0xFFB3BEB5) else Color(0xFF404943) } else Color(ColorUtils.HSLToColor(floatArrayOf(hue, surfaceSat * 0.25f, if (isDark) 0.75f else 0.35f)))
+
+    val outline = if (isForest) { if (isDark) Color(0xFF758177) else Color(0xFF717D73) } else Color(ColorUtils.HSLToColor(floatArrayOf(hue, surfaceSat * 0.15f, if (isDark) 0.45f else 0.6f)))
+    val outlineVariant = if (isForest) { if (isDark) Color(0xFF3A423C) else Color(0xFFC3CEC5) } else Color(ColorUtils.HSLToColor(floatArrayOf(hue, surfaceSat * 0.15f, if (isDark) 0.25f else 0.8f)))
+    
+    val surfaceContainer = if (isForest) { if (isDark) Color(0xFF1A1E1C) else Color(0xFFEFF3F0) } else Color(ColorUtils.HSLToColor(floatArrayOf(hue, surfaceSat * 0.05f, if (isDark) 0.15f else 0.96f)))
+    val surfaceContainerHigh = if (isForest) { if (isDark) Color(0xFF222623) else Color(0xFFE9EEEA) } else Color(ColorUtils.HSLToColor(floatArrayOf(hue, surfaceSat * 0.05f, if (isDark) 0.18f else 0.92f)))
+    val surfaceContainerHighest = if (isForest) { if (isDark) Color(0xFF282D2A) else Color(0xFFE4E9E5) } else Color(ColorUtils.HSLToColor(floatArrayOf(hue, surfaceSat * 0.05f, if (isDark) 0.22f else 0.88f)))
+    val surfaceContainerLow = if (isForest) { if (isDark) Color(0xFF141715) else Color(0xFFF3F7F4) } else Color(ColorUtils.HSLToColor(floatArrayOf(hue, surfaceSat * 0.05f, if (isDark) 0.12f else 0.98f)))
+    val surfaceContainerLowest = if (isForest) { if (isDark) Color(0xFF0F1110) else Color(0xFFFFFFFF) } else Color(ColorUtils.HSLToColor(floatArrayOf(hue, surfaceSat * 0.05f, if (isDark) 0.08f else 1.0f)))
+
+    return if (isDark) {
+        darkColorScheme(
+            primary = primaryColor, onPrimary = onPrimaryColor, primaryContainer = primaryContainer, onPrimaryContainer = onPrimaryContainer,
+            secondary = secondaryColor, onSecondary = onSecondaryColor, secondaryContainer = secondaryContainer, onSecondaryContainer = onSecondaryContainer,
+            tertiary = tertiaryColor, onTertiary = onTertiaryColor, tertiaryContainer = tertiaryContainer, onTertiaryContainer = onTertiaryContainer,
+            error = errorColorDark, onError = onErrorColorDark, errorContainer = errorContainerDark, onErrorContainer = onErrorContainerDark,
+            background = background, onBackground = onBackground, surface = surface, onSurface = onSurface,
+            surfaceVariant = surfaceVariant, onSurfaceVariant = onSurfaceVariant,
+            outline = outline, outlineVariant = outlineVariant,
+            surfaceContainer = surfaceContainer, surfaceContainerHigh = surfaceContainerHigh, surfaceContainerHighest = surfaceContainerHighest,
+            surfaceContainerLow = surfaceContainerLow, surfaceContainerLowest = surfaceContainerLowest
+        )
+    } else {
+        lightColorScheme(
+            primary = primaryColor, onPrimary = onPrimaryColor, primaryContainer = primaryContainer, onPrimaryContainer = onPrimaryContainer,
+            secondary = secondaryColor, onSecondary = onSecondaryColor, secondaryContainer = secondaryContainer, onSecondaryContainer = onSecondaryContainer,
+            tertiary = tertiaryColor, onTertiary = onTertiaryColor, tertiaryContainer = tertiaryContainer, onTertiaryContainer = onTertiaryContainer,
+            error = errorColor, onError = onErrorColor, errorContainer = errorContainer, onErrorContainer = onErrorContainer,
+            background = background, onBackground = onBackground, surface = surface, onSurface = onSurface,
+            surfaceVariant = surfaceVariant, onSurfaceVariant = onSurfaceVariant,
+            outline = outline, outlineVariant = outlineVariant,
+            surfaceContainer = surfaceContainer, surfaceContainerHigh = surfaceContainerHigh, surfaceContainerHighest = surfaceContainerHighest,
+            surfaceContainerLow = surfaceContainerLow, surfaceContainerLowest = surfaceContainerLowest
+        )
+    }
+}
 
 @Composable
 fun MyApplicationTheme(
@@ -93,17 +111,12 @@ fun MyApplicationTheme(
     isReducedMotion: Boolean = false,
     content: @Composable () -> Unit,
 ) {
-    val targetColorScheme = when (themeType) {
-        AppThemeType.PASTEL -> if (darkTheme) PastelDarkColorScheme else PastelLightColorScheme
-        AppThemeType.NEON -> NeonColorScheme
-        AppThemeType.VIBRANT -> if (darkTheme) VibrantDarkColorScheme else VibrantLightColorScheme
-        AppThemeType.MIDNIGHT -> MidnightColorScheme
-    }
-
+    val targetColorScheme = generateColorScheme(themeType, darkTheme)
+    
     val colorScheme = if (isReducedMotion) {
         targetColorScheme
     } else {
-        val animSpec = tween<Color>(300)
+        val animSpec = tween<Color>(350)
         ColorScheme(
             primary = animateColorAsState(targetColorScheme.primary, animSpec, label = "").value,
             onPrimary = animateColorAsState(targetColorScheme.onPrimary, animSpec, label = "").value,
@@ -144,5 +157,9 @@ fun MyApplicationTheme(
         )
     }
 
-    MaterialTheme(colorScheme = colorScheme, typography = Typography, content = content)
+    MaterialTheme(
+        colorScheme = colorScheme,
+        typography = Typography,
+        content = content
+    )
 }

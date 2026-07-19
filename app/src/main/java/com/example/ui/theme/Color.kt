@@ -40,16 +40,6 @@ val VibrantDarkBackground = Color(0xFF1A1A1A)
 val VibrantDarkSurface = Color(0xFF222222)
 val VibrantDarkSurfaceVariant = Color(0xFF333333)
 
-// MIDNIGHT
-val MidnightPrimary = Color(0xFF6495ED) // Soft Blue
-val MidnightSecondary = Color(0xFF4682B4)
-val MidnightTertiary = Color(0xFFB0C4DE)
-val MidnightBackground = Color(0xFF0D1B2A)
-val MidnightSurface = Color(0xFF1B263B)
-val MidnightSurfaceVariant = Color(0xFF415A77)
-val MidnightTextPrimary = Color(0xFFE0E1DD)
-val MidnightTextSecondary = Color(0xFF778DA9)
-
 val TextDisabled = Color(0xFF9CA3AF)
 
 val VibrantDarkTextPrimary = Color(0xFFFFFFFF)

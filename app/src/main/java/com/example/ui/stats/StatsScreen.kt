@@ -80,6 +80,28 @@ fun StatsScreen(viewModel: AppViewModel, onScrollDirectionChanged: (Boolean) -> 
         isVisible = true
     }
 
+        val highestQuestionDay = remember(sessions) {
+            sessions.groupBy { session -> 
+                val cal = Calendar.getInstance().apply { timeInMillis = session.date }
+                "${cal.get(Calendar.YEAR)}-${cal.get(Calendar.DAY_OF_YEAR)}"
+            }.maxByOrNull { it.value.sumOf { s -> s.questionsSolved } }?.value?.sumOf { it.questionsSolved } ?: 0
+        }
+        val distinctDays = remember(sessions) {
+            sessions.map { session ->
+                val cal = Calendar.getInstance().apply { timeInMillis = session.date }
+                "${cal.get(Calendar.YEAR)}-${cal.get(Calendar.DAY_OF_YEAR)}"
+            }.distinct().size
+        }
+        val averagePerDay = if (distinctDays > 0) totalSolved / distinctDays else 0
+        val mostPracticed = remember(varcCount, lrdiCount, quantCount) {
+            val counts = mapOf("VARC" to varcCount, "LRDI" to lrdiCount, "Quant" to quantCount)
+            val maxCount = counts.maxByOrNull { it.value }
+            if (maxCount != null && maxCount.value > 0) maxCount.key else "-"
+        }
+        
+    var searchQuery by remember { mutableStateOf("") }
+    var selectedFilter by remember { mutableStateOf("All") }
+
     LazyColumn(
         state = listState,
         modifier = Modifier
@@ -157,6 +179,18 @@ fun StatsScreen(viewModel: AppViewModel, onScrollDirectionChanged: (Boolean) -> 
                 }
             }
 
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Insights
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                InsightCard(title = "Best Day", value = highestQuestionDay.toString(), modifier = Modifier.weight(1f))
+                InsightCard(title = "Avg/Day", value = averagePerDay.toString(), modifier = Modifier.weight(1f))
+                InsightCard(title = "Top Section", value = mostPracticed, modifier = Modifier.weight(1f))
+            }
+
             Spacer(modifier = Modifier.height(32.dp))
 
             // Time Based Stats
@@ -227,15 +261,77 @@ fun StatsScreen(viewModel: AppViewModel, onScrollDirectionChanged: (Boolean) -> 
             Spacer(modifier = Modifier.height(32.dp))
             
             Text(
-                text = "Recent Sessions",
+                text = "History",
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold
             )
             Spacer(modifier = Modifier.height(16.dp))
         }
+        
+        item {
+            val filters = listOf("Today", "This Week", "This Month", "All")
 
-        val recentSessions = sessions.take(5)
-        if (recentSessions.isEmpty()) {
+            Column(modifier = Modifier.fillMaxWidth()) {
+                OutlinedTextField(
+                    value = searchQuery,
+                    onValueChange = { searchQuery = it },
+                    placeholder = { Text("Search by section...") },
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
+                    singleLine = true,
+                    shape = RoundedCornerShape(12.dp)
+                )
+
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    filters.forEach { filter ->
+                        val isSelected = selectedFilter == filter
+                        Surface(
+                            modifier = Modifier
+                                .clickable { selectedFilter = filter }
+                                .clip(RoundedCornerShape(16.dp)),
+                            color = if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                            shape = RoundedCornerShape(16.dp)
+                        ) {
+                            Text(
+                                text = filter,
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        val filteredSessions = sessions.filter { session ->
+            val matchesSearch = session.section.contains(searchQuery, ignoreCase = true)
+            val cal = Calendar.getInstance()
+            cal.timeInMillis = System.currentTimeMillis()
+            val currentYear = cal.get(Calendar.YEAR)
+            val currentDayOfYear = cal.get(Calendar.DAY_OF_YEAR)
+            val currentWeek = cal.get(Calendar.WEEK_OF_YEAR)
+            val currentMonth = cal.get(Calendar.MONTH)
+
+            cal.timeInMillis = session.date
+            val sessionYear = cal.get(Calendar.YEAR)
+            val sessionDayOfYear = cal.get(Calendar.DAY_OF_YEAR)
+            val sessionWeek = cal.get(Calendar.WEEK_OF_YEAR)
+            val sessionMonth = cal.get(Calendar.MONTH)
+
+            val matchesFilter = when (selectedFilter) {
+                "Today" -> sessionYear == currentYear && sessionDayOfYear == currentDayOfYear
+                "This Week" -> sessionYear == currentYear && sessionWeek == currentWeek
+                "This Month" -> sessionYear == currentYear && sessionMonth == currentMonth
+                else -> true
+            }
+            matchesSearch && matchesFilter
+        }
+
+        if (filteredSessions.isEmpty()) {
             item {
                 Column(
                     modifier = Modifier
@@ -266,8 +362,11 @@ fun StatsScreen(viewModel: AppViewModel, onScrollDirectionChanged: (Boolean) -> 
                 }
             }
         } else {
-            items(recentSessions.size) { index ->
-                val session = recentSessions[index]
+            items(
+                count = filteredSessions.size,
+                key = { index -> filteredSessions[index].id }
+            ) { index ->
+                val session = filteredSessions[index]
                 var itemVisible by remember { mutableStateOf(false) }
                 LaunchedEffect(Unit) {
                     kotlinx.coroutines.delay((index * 50).toLong())
@@ -275,6 +374,7 @@ fun StatsScreen(viewModel: AppViewModel, onScrollDirectionChanged: (Boolean) -> 
                 }
                 androidx.compose.animation.AnimatedVisibility(
                     visible = itemVisible,
+                    modifier = Modifier.animateItem(),
                     enter = if (isReducedMotion) androidx.compose.animation.fadeIn(animationSpec = tween(300)) 
                             else androidx.compose.animation.fadeIn(animationSpec = tween(300)) + androidx.compose.animation.slideInVertically(animationSpec = tween(300), initialOffsetY = { 50 })
                 ) {
@@ -286,6 +386,12 @@ fun StatsScreen(viewModel: AppViewModel, onScrollDirectionChanged: (Boolean) -> 
                             } else false
                         }
                     )
+                    
+                    LaunchedEffect(session) {
+                        if (dismissState.currentValue != SwipeToDismissBoxValue.Settled) {
+                            dismissState.snapTo(SwipeToDismissBoxValue.Settled)
+                        }
+                    }
                     var showEditSheet by remember { mutableStateOf(false) }
 
                     if (showEditSheet) {
@@ -448,5 +554,35 @@ fun SectionProgress(section: String, count: Int, total: Int, color: androidx.com
             color = color,
             trackColor = MaterialTheme.colorScheme.surfaceVariant
         )
+    }
+}
+
+@Composable
+fun InsightCard(title: String, value: String, modifier: Modifier = Modifier) {
+    Card(
+        modifier = modifier,
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
+        shape = RoundedCornerShape(16.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(12.dp).fillMaxWidth(),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                text = title.uppercase(),
+                fontSize = 10.sp,
+                fontWeight = FontWeight.Medium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                letterSpacing = 0.5.sp
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = value,
+                fontSize = 16.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+        }
     }
 }

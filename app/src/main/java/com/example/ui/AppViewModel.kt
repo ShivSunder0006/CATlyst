@@ -39,9 +39,47 @@ class AppViewModel(
         .map { it.theme }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "PASTEL")
 
+    val hapticsEnabled: StateFlow<Boolean> = activeSessionPreferences.activeSessionFlow
+        .map { it.hapticsEnabled }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)
+
+    val useSystemTheme: StateFlow<Boolean> = activeSessionPreferences.activeSessionFlow
+        .map { it.useSystemTheme }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+
+    val dailyGoal: StateFlow<Int> = activeSessionPreferences.activeSessionFlow
+        .map { it.dailyGoal }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 50)
+
     fun setTheme(theme: String) {
         viewModelScope.launch {
             activeSessionPreferences.setTheme(theme)
+        }
+    }
+
+    fun setHapticsEnabled(enabled: Boolean) {
+        viewModelScope.launch {
+            activeSessionPreferences.setHapticsEnabled(enabled)
+        }
+    }
+
+    fun setUseSystemTheme(enabled: Boolean) {
+        viewModelScope.launch {
+            activeSessionPreferences.setUseSystemTheme(enabled)
+        }
+    }
+
+    fun setDailyGoal(goal: Int) {
+        viewModelScope.launch {
+            activeSessionPreferences.setDailyGoal(goal)
+        }
+    }
+
+    fun restoreAllSessions(sessions: List<Session>) {
+        viewModelScope.launch {
+            repository.deleteAllSessions()
+            sessions.forEach { repository.insertSession(it) }
+            _uiEvents.emit(UiEvent.ShowSnackbar("Data restored successfully."))
         }
     }
 
@@ -123,6 +161,12 @@ class AppViewModel(
 
     private val _homeUiState = MutableStateFlow(HomeUiState())
     val homeUiState: StateFlow<HomeUiState> = _homeUiState.asStateFlow()
+
+    fun showSnackbar(message: String) {
+        viewModelScope.launch {
+            _uiEvents.emit(UiEvent.ShowSnackbar(message))
+        }
+    }
 
     private val _uiEvents = MutableSharedFlow<UiEvent>()
     val uiEvents = _uiEvents.asSharedFlow()
@@ -223,7 +267,7 @@ class AppViewModel(
                 )
             }
             activeSessionPreferences.clearActiveSession()
-            _uiEvents.emit(UiEvent.ShowSnackbar("$count $section questions saved.", actionLabel = "Undo", sessionToRestore = savedSession, isUndoSave = true))
+            _uiEvents.emit(UiEvent.ShowSnackbar("+$count $section added.", actionLabel = "Undo", sessionToRestore = savedSession, isUndoSave = true))
             isSaving = false
         }
     }

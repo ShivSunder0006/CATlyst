@@ -10,6 +10,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.example.data.Session
+import com.example.ui.home.bounceClick
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.shape.RoundedCornerShape
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -80,7 +83,7 @@ fun EditSessionSheet(
             )
 
             Spacer(modifier = Modifier.height(16.dp))
-
+            val saveInteractionSource = remember { MutableInteractionSource() }
             Button(
                 onClick = {
                     val countInt = count.toIntOrNull() ?: 0
@@ -89,7 +92,9 @@ fun EditSessionSheet(
                         onDismiss()
                     }
                 },
-                modifier = Modifier.fillMaxWidth()
+                interactionSource = saveInteractionSource,
+                modifier = Modifier.fillMaxWidth().height(56.dp).bounceClick(saveInteractionSource, RoundedCornerShape(16.dp)),
+                shape = RoundedCornerShape(16.dp)
             ) {
                 Text("Save Changes")
             }

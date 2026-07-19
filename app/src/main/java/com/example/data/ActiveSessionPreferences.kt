@@ -21,6 +21,9 @@ class ActiveSessionPreferences(private val context: Context) {
     private val HAS_GOAL_KEY = stringPreferencesKey("has_goal")
     private val HINT_SEEN_KEY = stringPreferencesKey("has_seen_target_hint")
     private val THEME_KEY = stringPreferencesKey("app_theme")
+    private val HAPTICS_KEY = stringPreferencesKey("haptics_enabled")
+    private val SYSTEM_THEME_KEY = stringPreferencesKey("use_system_theme")
+    private val DAILY_GOAL_KEY = intPreferencesKey("daily_goal")
 
     val activeSessionFlow: Flow<ActiveSessionData> = context.dataStore.data
         .map { preferences ->
@@ -30,8 +33,11 @@ class ActiveSessionPreferences(private val context: Context) {
             val goal = if (hasGoal) preferences[GOAL_KEY] else null
             val hintSeen = preferences[HINT_SEEN_KEY] == "true"
             val theme = preferences[THEME_KEY] ?: "PASTEL"
+            val hapticsEnabled = preferences[HAPTICS_KEY] != "false"
+            val useSystemTheme = preferences[SYSTEM_THEME_KEY] == "true"
+            val dailyGoal = preferences[DAILY_GOAL_KEY] ?: 50
 
-            ActiveSessionData(count, section, goal, hintSeen, theme)
+            ActiveSessionData(count, section, goal, hintSeen, theme, hapticsEnabled, useSystemTheme, dailyGoal)
         }
 
     suspend fun setHintSeen() {
@@ -68,6 +74,24 @@ class ActiveSessionPreferences(private val context: Context) {
             preferences[THEME_KEY] = theme
         }
     }
+
+    suspend fun setHapticsEnabled(enabled: Boolean) {
+        context.dataStore.edit { preferences ->
+            preferences[HAPTICS_KEY] = if (enabled) "true" else "false"
+        }
+    }
+
+    suspend fun setUseSystemTheme(enabled: Boolean) {
+        context.dataStore.edit { preferences ->
+            preferences[SYSTEM_THEME_KEY] = if (enabled) "true" else "false"
+        }
+    }
+
+    suspend fun setDailyGoal(goal: Int) {
+        context.dataStore.edit { preferences ->
+            preferences[DAILY_GOAL_KEY] = goal
+        }
+    }
 }
 
 data class ActiveSessionData(
@@ -75,5 +99,8 @@ data class ActiveSessionData(
     val selectedSection: String = "VARC",
     val goal: Int? = null,
     val hintSeen: Boolean = false,
-    val theme: String = "PASTEL"
+    val theme: String = "PASTEL",
+    val hapticsEnabled: Boolean = true,
+    val useSystemTheme: Boolean = false,
+    val dailyGoal: Int = 50
 )

@@ -36,6 +36,7 @@ class MainActivity : ComponentActivity() {
 
     setContent {
       val themeString by viewModel.currentTheme.collectAsState()
+      val useSystemTheme by viewModel.useSystemTheme.collectAsState()
       val themeType = try {
           AppThemeType.valueOf(themeString)
       } catch (e: Exception) {
@@ -47,8 +48,15 @@ class MainActivity : ComponentActivity() {
       val animatorScale = Settings.Global.getFloat(context.contentResolver, Settings.Global.ANIMATOR_DURATION_SCALE, 1f)
       val isReducedMotion = transitionScale == 0f || animatorScale == 0f
 
-      MyApplicationTheme(themeType = themeType, isReducedMotion = isReducedMotion) {
-        AppNavigation(viewModel = viewModel)
+      val hapticsEnabled by viewModel.hapticsEnabled.collectAsState()
+      val systemHaptic = androidx.compose.ui.platform.LocalHapticFeedback.current
+
+      MyApplicationTheme(themeType = themeType, isReducedMotion = isReducedMotion, darkTheme = if (useSystemTheme) androidx.compose.foundation.isSystemInDarkTheme() else false) {
+        androidx.compose.runtime.CompositionLocalProvider(
+            androidx.compose.ui.platform.LocalHapticFeedback provides com.example.ui.navigation.CustomHapticFeedback(systemHaptic, hapticsEnabled)
+        ) {
+            AppNavigation(viewModel = viewModel)
+        }
       }
     }
   }

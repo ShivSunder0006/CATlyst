@@ -7,6 +7,9 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkHorizontally
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.LinearOutSlowInEasing
+import androidx.compose.animation.core.FastOutLinearInEasing
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -50,10 +53,16 @@ import com.example.ui.home.HomeScreen
 import com.example.ui.stats.StatsScreen
 import kotlinx.coroutines.launch
 
+import com.example.ui.settings.SettingsScreen
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material3.IconButton
+
+import com.example.ui.home.bounceClick
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AppNavigation(viewModel: AppViewModel) {
-    val pagerState = rememberPagerState(pageCount = { 2 })
+    val pagerState = rememberPagerState(pageCount = { 3 })
     val haptic = LocalHapticFeedback.current
     val snackbarHostState = remember { SnackbarHostState() }
 
@@ -100,14 +109,20 @@ fun AppNavigation(viewModel: AppViewModel) {
                                 .padding(end = 8.dp, top = 4.dp, bottom = 4.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text("CAT", fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.primary)
-                            Text("lyst", fontWeight = FontWeight.Normal, color = MaterialTheme.colorScheme.onBackground)
+                            Text("CAT", fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.primary)
+                            Text("lyst", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
                         }
                         
                         AnimatedVisibility(
                             visible = isThemeSelectorExpanded,
-                            enter = expandHorizontally(expandFrom = Alignment.Start) + fadeIn(),
-                            exit = shrinkHorizontally(shrinkTowards = Alignment.Start) + fadeOut()
+                            enter = expandHorizontally(
+                                expandFrom = Alignment.Start,
+                                animationSpec = tween(durationMillis = 200, easing = LinearOutSlowInEasing)
+                            ) + fadeIn(animationSpec = tween(200)),
+                            exit = shrinkHorizontally(
+                                shrinkTowards = Alignment.Start,
+                                animationSpec = tween(durationMillis = 200, easing = FastOutLinearInEasing)
+                            ) + fadeOut(animationSpec = tween(200))
                         ) {
                             Row(
                                 modifier = Modifier
@@ -121,14 +136,16 @@ fun AppNavigation(viewModel: AppViewModel) {
                                     "PASTEL" to Color(0xFFC6E7FF),
                                     "NEON" to Color(0xFF00FFCC),
                                     "VIBRANT" to Color(0xFFFF3366),
-                                    "MIDNIGHT" to Color(0xFF6495ED)
+                                    "FOREST" to Color(0xFF2E8B57)
                                 )
                                 
                                 themes.forEach { (themeName, themeColor) ->
                                     val isSelected = currentThemeString == themeName
+                                    val themeInteractionSource = remember { MutableInteractionSource() }
                                     Box(
                                         modifier = Modifier
                                             .size(24.dp)
+                                            .bounceClick(themeInteractionSource, CircleShape)
                                             .clip(CircleShape)
                                             .background(themeColor)
                                             .border(
@@ -136,7 +153,10 @@ fun AppNavigation(viewModel: AppViewModel) {
                                                 color = if (isSelected) MaterialTheme.colorScheme.onSurface else Color.Transparent,
                                                 shape = CircleShape
                                             )
-                                            .clickable {
+                                            .clickable(
+                                                interactionSource = themeInteractionSource,
+                                                indication = androidx.compose.foundation.LocalIndication.current
+                                            ) {
                                                 viewModel.setTheme(themeName)
                                                 isThemeSelectorExpanded = false
                                                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)
@@ -158,9 +178,19 @@ fun AppNavigation(viewModel: AppViewModel) {
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.background,
-                    titleContentColor = MaterialTheme.colorScheme.onBackground
-                )
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    titleContentColor = MaterialTheme.colorScheme.onSurface
+                ),
+                actions = {
+                    val coroutineScope = androidx.compose.runtime.rememberCoroutineScope()
+                    IconButton(onClick = { 
+                        coroutineScope.launch {
+                            pagerState.animateScrollToPage(2)
+                        }
+                    }) {
+                        Icon(imageVector = Icons.Default.Settings, contentDescription = "Settings", tint = MaterialTheme.colorScheme.onBackground)
+                    }
+                }
             )
         }
     ) { innerPadding ->
@@ -179,6 +209,7 @@ fun AppNavigation(viewModel: AppViewModel) {
                         viewModel = viewModel,
                         onScrollDirectionChanged = { }
                     )
+                    2 -> SettingsScreen(viewModel = viewModel)
                 }
             }
 

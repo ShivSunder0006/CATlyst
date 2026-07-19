@@ -25,6 +25,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -39,6 +40,8 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -61,10 +64,7 @@ fun Modifier.bounceClick(
 ): Modifier {
     val isPressed by interactionSource.collectIsPressedAsState()
     val scale by animateFloatAsState(if (isPressed) 0.95f else 1f, spring(), label = "bounceScale")
-    val elevation by androidx.compose.animation.core.animateDpAsState(if (isPressed) 2.dp else 8.dp, spring(), label = "bounceElevation")
-    return this
-        .scale(scale)
-        .shadow(elevation = elevation, shape = shape, clip = false)
+    return this.scale(scale)
 }
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -111,13 +111,52 @@ fun HomeScreen(viewModel: AppViewModel) {
             .padding(horizontal = 24.dp, vertical = 16.dp),
     ) {
         
-        // Section Selector
+        val dailyGoal by viewModel.dailyGoal.collectAsStateWithLifecycle()
+        val dailyProgress = if (dailyGoal > 0) (todaySolved.toFloat() / dailyGoal).coerceIn(0f, 1f) else 0f
+        
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text("Today's Progress", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+            DailyGoalRing(dailyProgress = dailyProgress)
+        }
+
+        // Section Selector
+        val sections = listOf("Quant", "VARC", "LRDI")
+        var dragOffset by remember { mutableStateOf(0f) }
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .pointerInput(Unit) {
+                    detectHorizontalDragGestures(
+                        onDragEnd = {
+                            if (dragOffset > 50) {
+                                val currentIndex = sections.indexOf(uiState.selectedSection)
+                                if (currentIndex > 0) {
+                                    viewModel.updateSection(sections[currentIndex - 1])
+                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                }
+                            } else if (dragOffset < -50) {
+                                val currentIndex = sections.indexOf(uiState.selectedSection)
+                                if (currentIndex < sections.size - 1) {
+                                    viewModel.updateSection(sections[currentIndex + 1])
+                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                }
+                            }
+                            dragOffset = 0f
+                        },
+                        onHorizontalDrag = { change, dragAmount ->
+                            dragOffset += dragAmount
+                            change.consume()
+                        }
+                    )
+                }
+                .padding(bottom = 8.dp),
             horizontalArrangement = Arrangement.Center,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            val sections = listOf("Quant", "VARC", "LRDI")
             sections.forEach { section ->
                 val isSelected = uiState.selectedSection == section
                 Box(
@@ -243,8 +282,19 @@ fun HomeScreen(viewModel: AppViewModel) {
                     }
                 }
                 
+                var pulseScale by remember { mutableStateOf(1f) }
+                LaunchedEffect(showCompletion) {
+                    if (showCompletion) {
+                        pulseScale = 1.15f
+                        kotlinx.coroutines.delay(150)
+                        pulseScale = 1f
+                    }
+                }
+                val animatedPulse by animateFloatAsState(targetValue = pulseScale, animationSpec = tween(200), label = "pulse")
+                
                 Column(
-                    horizontalAlignment = Alignment.CenterHorizontally
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier.scale(animatedPulse)
                 ) {
                     AnimatedContent(
                         targetState = if (showCompletion && targetProgress >= 1f) "TARGET REACHED" else "CURRENT SESSION",
@@ -468,12 +518,23 @@ fun HomeScreen(viewModel: AppViewModel) {
             }
 
             // Secondary Actions
+            var showCheckmark by remember { mutableStateOf(false) }
+            LaunchedEffect(showCheckmark) {
+                if (showCheckmark) {
+                    kotlinx.coroutines.delay(1000)
+                    showCheckmark = false
+                }
+            }
+            val saveInteractionSource = remember { MutableInteractionSource() }
             Button(
                 onClick = { 
                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                     viewModel.saveSession() 
+                    showCheckmark = true
                 },
-                modifier = Modifier.fillMaxWidth().height(56.dp).bounceClick(shape = RoundedCornerShape(16.dp)),
+                enabled = !showCheckmark && uiState.currentSessionCount > 0,
+                interactionSource = saveInteractionSource,
+                modifier = Modifier.fillMaxWidth().height(56.dp).bounceClick(saveInteractionSource, RoundedCornerShape(16.dp)),
                 shape = RoundedCornerShape(16.dp),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = MaterialTheme.colorScheme.primary,
@@ -481,7 +542,13 @@ fun HomeScreen(viewModel: AppViewModel) {
                 ),
                 elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp)
             ) {
-                Text("Save Session", fontWeight = FontWeight.SemiBold)
+                AnimatedContent(targetState = showCheckmark, label = "save_btn_anim") { show ->
+                    if (show) {
+                        Icon(Icons.Default.Check, contentDescription = "Saved")
+                    } else {
+                        Text("Save Session", fontWeight = FontWeight.SemiBold)
+                    }
+                }
             }
         }
     }
@@ -648,9 +715,11 @@ fun GoalPickerSheet(
                 TextButton(onClick = onDismiss) {
                     Text("Cancel", color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
+                val doneInteractionSource = remember { MutableInteractionSource() }
                 Button(
                     onClick = { onGoalSelected(selectedValue) },
-                    modifier = Modifier.bounceClick(shape = RoundedCornerShape(16.dp)),
+                    interactionSource = doneInteractionSource,
+                    modifier = Modifier.bounceClick(doneInteractionSource, RoundedCornerShape(16.dp)),
                     shape = RoundedCornerShape(16.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary, contentColor = MaterialTheme.colorScheme.onPrimary)
                 ) {
