@@ -1,5 +1,11 @@
 package com.example.ui.stats
 
+import com.example.ui.theme.AppSpacing
+
+import androidx.compose.material3.MaterialTheme
+
+import com.example.ui.theme.AppMotion
+
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.animateIntAsState
 import androidx.compose.animation.core.tween
@@ -107,14 +113,14 @@ fun StatsScreen(viewModel: AppViewModel, onScrollDirectionChanged: (Boolean) -> 
         modifier = Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
-            .padding(horizontal = 24.dp),
+            .padding(horizontal = AppSpacing.Large),
         contentPadding = PaddingValues(vertical = 24.dp)
     ) {
         item {
             androidx.compose.animation.AnimatedVisibility(
                 visible = isVisible,
-                enter = if (isReducedMotion) androidx.compose.animation.fadeIn(animationSpec = tween(300)) 
-                        else androidx.compose.animation.fadeIn(animationSpec = tween(300)) + androidx.compose.animation.slideInVertically(animationSpec = tween(300), initialOffsetY = { 50 })
+                enter = if (isReducedMotion) androidx.compose.animation.fadeIn(animationSpec = AppMotion.standard()) 
+                        else androidx.compose.animation.fadeIn(animationSpec = AppMotion.standard()) + androidx.compose.animation.slideInVertically(animationSpec = AppMotion.standard(), initialOffsetY = { 50 })
             ) {
                 Column {
                     Text(
@@ -123,7 +129,7 @@ fun StatsScreen(viewModel: AppViewModel, onScrollDirectionChanged: (Boolean) -> 
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onBackground
                     )
-                    Spacer(modifier = Modifier.height(24.dp))
+                    Spacer(modifier = Modifier.height(AppSpacing.Large))
                     
                     if (sessions.isEmpty()) {
                         Box(
@@ -136,7 +142,7 @@ fun StatsScreen(viewModel: AppViewModel, onScrollDirectionChanged: (Boolean) -> 
                                     style = MaterialTheme.typography.titleMedium,
                                     color = MaterialTheme.colorScheme.onSurface
                                 )
-                                Spacer(modifier = Modifier.height(8.dp))
+                                Spacer(modifier = Modifier.height(AppSpacing.Small))
                                 Text(
                                     text = "Save your first session to see your progress.",
                                     style = MaterialTheme.typography.bodyMedium,
@@ -149,12 +155,12 @@ fun StatsScreen(viewModel: AppViewModel, onScrollDirectionChanged: (Boolean) -> 
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                shape = RoundedCornerShape(24.dp),
+                shape = MaterialTheme.shapes.large,
                 border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.1f)),
                 elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
             ) {
                 Column(
-                    modifier = Modifier.padding(24.dp).fillMaxWidth(),
+                    modifier = Modifier.padding(AppSpacing.Large).fillMaxWidth(),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Text(
@@ -164,11 +170,11 @@ fun StatsScreen(viewModel: AppViewModel, onScrollDirectionChanged: (Boolean) -> 
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         letterSpacing = 1.sp
                     )
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(AppSpacing.Small))
                     
                     var animatedTotal by remember { mutableIntStateOf(0) }
                     LaunchedEffect(totalSolved) { animatedTotal = totalSolved }
-                    val displayedTotal by animateIntAsState(targetValue = animatedTotal, animationSpec = tween(500), label = "total")
+                    val displayedTotal by animateIntAsState(targetValue = animatedTotal, animationSpec = AppMotion.success(), label = "total")
                     
                     Text(
                         text = displayedTotal.toString(),
@@ -179,19 +185,19 @@ fun StatsScreen(viewModel: AppViewModel, onScrollDirectionChanged: (Boolean) -> 
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(AppSpacing.Medium))
 
             // Insights
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                horizontalArrangement = Arrangement.spacedBy(AppSpacing.Small)
             ) {
                 InsightCard(title = "Best Day", value = highestQuestionDay.toString(), modifier = Modifier.weight(1f))
                 InsightCard(title = "Avg/Day", value = averagePerDay.toString(), modifier = Modifier.weight(1f))
                 InsightCard(title = "Top Section", value = mostPracticed, modifier = Modifier.weight(1f))
             }
 
-            Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(AppSpacing.ExtraLarge))
 
             // Time Based Stats
             val weeklyComparison = if (lastWeekSolved == 0) {
@@ -203,14 +209,14 @@ fun StatsScreen(viewModel: AppViewModel, onScrollDirectionChanged: (Boolean) -> 
             }
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(16.dp)
+                horizontalArrangement = Arrangement.spacedBy(AppSpacing.Medium)
             ) {
                 TimeStatCard(title = "Today", value = todaySolved.toString(), modifier = Modifier.weight(1f))
                 TimeStatCard(title = "This Week", value = thisWeekSolved.toString(), subtitle = weeklyComparison, modifier = Modifier.weight(1f))
                 TimeStatCard(title = "This Month", value = thisMonthSolved.toString(), modifier = Modifier.weight(1f))
             }
 
-            Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(AppSpacing.ExtraLarge))
 
             // 7-Day Activity
             Text(
@@ -218,10 +224,10 @@ fun StatsScreen(viewModel: AppViewModel, onScrollDirectionChanged: (Boolean) -> 
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold
             )
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(AppSpacing.Medium))
             SevenDayActivityChart(last7DaysSessions)
 
-            Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(AppSpacing.ExtraLarge))
 
             // Section Stats
             Text(
@@ -229,7 +235,7 @@ fun StatsScreen(viewModel: AppViewModel, onScrollDirectionChanged: (Boolean) -> 
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold
             )
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(AppSpacing.Medium))
 
             SectionProgress(
                 section = "VARC",
@@ -237,14 +243,14 @@ fun StatsScreen(viewModel: AppViewModel, onScrollDirectionChanged: (Boolean) -> 
                 total = totalSolved,
                 color = MaterialTheme.colorScheme.primary
             )
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(AppSpacing.Medium))
             SectionProgress(
                 section = "LRDI",
                 count = lrdiCount,
                 total = totalSolved,
                 color = MaterialTheme.colorScheme.secondary
             )
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(AppSpacing.Medium))
             SectionProgress(
                 section = "Quant",
                 count = quantCount,
@@ -258,14 +264,14 @@ fun StatsScreen(viewModel: AppViewModel, onScrollDirectionChanged: (Boolean) -> 
         }
         
         item {
-            Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(AppSpacing.ExtraLarge))
             
             Text(
                 text = "History",
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold
             )
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(AppSpacing.Medium))
         }
         
         item {
@@ -278,21 +284,21 @@ fun StatsScreen(viewModel: AppViewModel, onScrollDirectionChanged: (Boolean) -> 
                     placeholder = { Text("Search by section...") },
                     modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
                     singleLine = true,
-                    shape = RoundedCornerShape(12.dp)
+                    shape = MaterialTheme.shapes.medium
                 )
 
                 Row(
                     modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(AppSpacing.Small)
                 ) {
                     filters.forEach { filter ->
                         val isSelected = selectedFilter == filter
                         Surface(
                             modifier = Modifier
                                 .clickable { selectedFilter = filter }
-                                .clip(RoundedCornerShape(16.dp)),
+                                .clip(MaterialTheme.shapes.medium),
                             color = if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                            shape = RoundedCornerShape(16.dp)
+                            shape = MaterialTheme.shapes.medium
                         ) {
                             Text(
                                 text = filter,
@@ -345,14 +351,14 @@ fun StatsScreen(viewModel: AppViewModel, onScrollDirectionChanged: (Boolean) -> 
                         modifier = Modifier.size(64.dp),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
                     )
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(AppSpacing.Medium))
                     Text(
                         text = "No saved sessions yet.",
                         style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.onSurface,
                         textAlign = androidx.compose.ui.text.style.TextAlign.Center
                     )
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(AppSpacing.Small))
                     Text(
                         text = "Your completed study sessions will appear here.",
                         style = MaterialTheme.typography.bodyMedium,
@@ -375,8 +381,8 @@ fun StatsScreen(viewModel: AppViewModel, onScrollDirectionChanged: (Boolean) -> 
                 androidx.compose.animation.AnimatedVisibility(
                     visible = itemVisible,
                     modifier = Modifier.animateItem(),
-                    enter = if (isReducedMotion) androidx.compose.animation.fadeIn(animationSpec = tween(300)) 
-                            else androidx.compose.animation.fadeIn(animationSpec = tween(300)) + androidx.compose.animation.slideInVertically(animationSpec = tween(300), initialOffsetY = { 50 })
+                    enter = if (isReducedMotion) androidx.compose.animation.fadeIn(animationSpec = AppMotion.standard()) 
+                            else androidx.compose.animation.fadeIn(animationSpec = AppMotion.standard()) + androidx.compose.animation.slideInVertically(animationSpec = AppMotion.standard(), initialOffsetY = { 50 })
                 ) {
                     val dismissState = rememberSwipeToDismissBoxState(
                         confirmValueChange = {
@@ -412,7 +418,7 @@ fun StatsScreen(viewModel: AppViewModel, onScrollDirectionChanged: (Boolean) -> 
                                 Modifier
                                     .fillMaxSize()
                                     .padding(bottom = 8.dp)
-                                    .clip(RoundedCornerShape(16.dp))
+                                    .clip(MaterialTheme.shapes.medium)
                                     .background(color)
                                     .padding(horizontal = 20.dp),
                                 contentAlignment = Alignment.CenterEnd
@@ -431,12 +437,12 @@ fun StatsScreen(viewModel: AppViewModel, onScrollDirectionChanged: (Boolean) -> 
                                 .padding(bottom = 8.dp)
                                 .clickable { showEditSheet = true },
                             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                            shape = RoundedCornerShape(16.dp),
+                            shape = MaterialTheme.shapes.medium,
                             border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.1f)),
                             elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
                         ) {
                             Row(
-                                modifier = Modifier.fillMaxWidth().padding(16.dp),
+                                modifier = Modifier.fillMaxWidth().padding(AppSpacing.Medium),
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
@@ -447,7 +453,7 @@ fun StatsScreen(viewModel: AppViewModel, onScrollDirectionChanged: (Boolean) -> 
                                         style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
-                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Spacer(modifier = Modifier.height(AppSpacing.ExtraSmall))
                                     Text(
                                         text = session.section,
                                         style = MaterialTheme.typography.bodyLarge,
@@ -473,19 +479,19 @@ fun StatsScreen(viewModel: AppViewModel, onScrollDirectionChanged: (Boolean) -> 
 fun TimeStatCard(title: String, value: String, subtitle: String? = null, modifier: Modifier = Modifier) {
     var animatedValue by remember { mutableIntStateOf(0) }
     LaunchedEffect(value) { animatedValue = value.toIntOrNull() ?: 0 }
-    val displayedValue by animateIntAsState(targetValue = animatedValue, animationSpec = tween(500), label = "timeStat")
+    val displayedValue by animateIntAsState(targetValue = animatedValue, animationSpec = AppMotion.success(), label = "timeStat")
 
     Card(
         modifier = modifier,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        shape = RoundedCornerShape(16.dp),
+        shape = MaterialTheme.shapes.medium,
         border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.1f)),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
+                .padding(AppSpacing.Medium),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
@@ -493,7 +499,7 @@ fun TimeStatCard(title: String, value: String, subtitle: String? = null, modifie
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(AppSpacing.Small))
             Text(
                 text = displayedValue.toString(),
                 style = MaterialTheme.typography.titleLarge,
@@ -501,7 +507,7 @@ fun TimeStatCard(title: String, value: String, subtitle: String? = null, modifie
                 color = MaterialTheme.colorScheme.onSurface
             )
             if (subtitle != null) {
-                Spacer(modifier = Modifier.height(4.dp))
+                Spacer(modifier = Modifier.height(AppSpacing.ExtraSmall))
                 Text(
                     text = subtitle,
                     style = MaterialTheme.typography.labelSmall,
@@ -520,11 +526,11 @@ fun SectionProgress(section: String, count: Int, total: Int, color: androidx.com
     
     var animatedProgress by remember { androidx.compose.runtime.mutableFloatStateOf(0f) }
     LaunchedEffect(progress) { animatedProgress = progress }
-    val displayedProgress by animateFloatAsState(targetValue = animatedProgress, animationSpec = tween(700), label = "progress")
+    val displayedProgress by animateFloatAsState(targetValue = animatedProgress, animationSpec = AppMotion.success(), label = "progress")
 
     var animatedCount by remember { mutableIntStateOf(0) }
     LaunchedEffect(count) { animatedCount = count }
-    val displayedCount by animateIntAsState(targetValue = animatedCount, animationSpec = tween(700), label = "count")
+    val displayedCount by animateIntAsState(targetValue = animatedCount, animationSpec = AppMotion.success(), label = "count")
     val displayedPercentage = if (total > 0) ((displayedCount.toFloat() / total.toFloat()) * 100).toInt() else 0
 
     Column(modifier = Modifier.fillMaxWidth()) {
@@ -544,7 +550,7 @@ fun SectionProgress(section: String, count: Int, total: Int, color: androidx.com
                 color = MaterialTheme.colorScheme.onSurface
             )
         }
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(AppSpacing.Small))
         LinearProgressIndicator(
             progress = { displayedProgress },
             modifier = Modifier
@@ -562,7 +568,7 @@ fun InsightCard(title: String, value: String, modifier: Modifier = Modifier) {
     Card(
         modifier = modifier,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
-        shape = RoundedCornerShape(16.dp),
+        shape = MaterialTheme.shapes.medium,
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Column(
@@ -576,7 +582,7 @@ fun InsightCard(title: String, value: String, modifier: Modifier = Modifier) {
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 letterSpacing = 0.5.sp
             )
-            Spacer(modifier = Modifier.height(4.dp))
+            Spacer(modifier = Modifier.height(AppSpacing.ExtraSmall))
             Text(
                 text = value,
                 fontSize = 16.sp,

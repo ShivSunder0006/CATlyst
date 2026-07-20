@@ -1,6 +1,7 @@
 package com.example.ui.home
 
-import androidx.compose.animation.core.FastOutSlowInEasing
+import com.example.ui.theme.AppMotion
+
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -35,7 +36,7 @@ import androidx.compose.ui.unit.sp
 fun DailyGoalRing(dailyProgress: Float, modifier: Modifier = Modifier) {
     val animatedProgress by animateFloatAsState(
         targetValue = dailyProgress,
-        animationSpec = tween(durationMillis = 800, easing = FastOutSlowInEasing),
+        animationSpec = AppMotion.success(),
         label = "dailyProgressAnimation"
     )
 

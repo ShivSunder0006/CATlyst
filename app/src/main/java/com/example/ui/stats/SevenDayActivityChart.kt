@@ -1,5 +1,9 @@
 package com.example.ui.stats
 
+import com.example.ui.theme.AppSpacing
+
+import com.example.ui.theme.AppMotion
+
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
@@ -61,7 +65,7 @@ fun SevenDayActivityChart(sessions: List<Session>, modifier: Modifier = Modifier
                 val targetHeight = if (isVisible) value.toFloat() / maxData.toFloat() else 0f
                 val animatedHeight by animateFloatAsState(
                     targetValue = targetHeight,
-                    animationSpec = tween(800),
+                    animationSpec = AppMotion.success(),
                     label = "barHeight"
                 )
                 
@@ -69,7 +73,7 @@ fun SevenDayActivityChart(sessions: List<Session>, modifier: Modifier = Modifier
                     modifier = Modifier
                         .weight(1f)
                         .fillMaxHeight()
-                        .padding(horizontal = 4.dp)
+                        .padding(horizontal = AppSpacing.ExtraSmall)
                 ) {
                     val cornerRadius = CornerRadius(16.dp.toPx())
                     drawRoundRect(
@@ -90,7 +94,7 @@ fun SevenDayActivityChart(sessions: List<Session>, modifier: Modifier = Modifier
                 }
             }
         }
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(AppSpacing.Small))
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween

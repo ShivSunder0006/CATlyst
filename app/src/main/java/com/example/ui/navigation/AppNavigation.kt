@@ -1,5 +1,9 @@
 package com.example.ui.navigation
 
+import com.example.ui.theme.AppSpacing
+
+import com.example.ui.theme.AppMotion
+
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandHorizontally
 import androidx.compose.animation.fadeIn
@@ -8,7 +12,6 @@ import androidx.compose.animation.shrinkHorizontally
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.core.LinearOutSlowInEasing
 import androidx.compose.animation.core.FastOutLinearInEasing
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -57,7 +60,7 @@ import com.example.ui.settings.SettingsScreen
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.IconButton
 
-import com.example.ui.home.bounceClick
+import com.example.ui.theme.bounceClick
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -101,7 +104,7 @@ fun AppNavigation(viewModel: AppViewModel) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Row(
                             modifier = Modifier
-                                .clip(RoundedCornerShape(8.dp))
+                                .clip(MaterialTheme.shapes.small)
                                 .clickable(
                                     interactionSource = remember { MutableInteractionSource() },
                                     indication = null
@@ -117,19 +120,19 @@ fun AppNavigation(viewModel: AppViewModel) {
                             visible = isThemeSelectorExpanded,
                             enter = expandHorizontally(
                                 expandFrom = Alignment.Start,
-                                animationSpec = tween(durationMillis = 200, easing = LinearOutSlowInEasing)
-                            ) + fadeIn(animationSpec = tween(200)),
+                                animationSpec = AppMotion.quick()
+                            ) + fadeIn(animationSpec = AppMotion.quick()),
                             exit = shrinkHorizontally(
                                 shrinkTowards = Alignment.Start,
-                                animationSpec = tween(durationMillis = 200, easing = FastOutLinearInEasing)
-                            ) + fadeOut(animationSpec = tween(200))
+                                animationSpec = AppMotion.quick()
+                            ) + fadeOut(animationSpec = AppMotion.quick())
                         ) {
                             Row(
                                 modifier = Modifier
-                                    .clip(RoundedCornerShape(16.dp))
+                                    .clip(MaterialTheme.shapes.medium)
                                     .background(MaterialTheme.colorScheme.surfaceVariant)
-                                    .padding(horizontal = 8.dp, vertical = 4.dp),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    .padding(horizontal = AppSpacing.Small, vertical = AppSpacing.ExtraSmall),
+                                horizontalArrangement = Arrangement.spacedBy(AppSpacing.Small),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 val themes = listOf(

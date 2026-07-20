@@ -1,5 +1,12 @@
 package com.example.ui.settings
 
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.clickable
+import com.example.ui.theme.bounceClick
+import androidx.compose.material3.ripple
+
+import com.example.ui.theme.AppSpacing
+
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
@@ -93,8 +100,8 @@ fun SettingsScreen(viewModel: AppViewModel) {
     }
 
     LazyColumn(
-        modifier = Modifier.fillMaxSize().padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+        modifier = Modifier.fillMaxSize().padding(AppSpacing.Medium),
+        verticalArrangement = Arrangement.spacedBy(AppSpacing.Medium)
     ) {
         item {
             Text("Settings", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
@@ -102,9 +109,9 @@ fun SettingsScreen(viewModel: AppViewModel) {
 
         item {
             Card(modifier = Modifier.fillMaxWidth()) {
-                Column(modifier = Modifier.padding(16.dp)) {
+                Column(modifier = Modifier.padding(AppSpacing.Medium)) {
                     Text("Daily Goal", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(AppSpacing.Medium))
                     
                     var goalText by remember(dailyGoal) { mutableStateOf(dailyGoal.toString()) }
                     OutlinedTextField(
@@ -126,9 +133,9 @@ fun SettingsScreen(viewModel: AppViewModel) {
 
         item {
             Card(modifier = Modifier.fillMaxWidth()) {
-                Column(modifier = Modifier.padding(16.dp)) {
+                Column(modifier = Modifier.padding(AppSpacing.Medium)) {
                     Text("Theme", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(AppSpacing.Medium))
                     
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -147,9 +154,9 @@ fun SettingsScreen(viewModel: AppViewModel) {
 
         item {
             Card(modifier = Modifier.fillMaxWidth()) {
-                Column(modifier = Modifier.padding(16.dp)) {
+                Column(modifier = Modifier.padding(AppSpacing.Medium)) {
                     Text("Preferences", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(AppSpacing.Medium))
                     
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -168,9 +175,9 @@ fun SettingsScreen(viewModel: AppViewModel) {
 
         item {
             Card(modifier = Modifier.fillMaxWidth()) {
-                Column(modifier = Modifier.padding(16.dp)) {
+                Column(modifier = Modifier.padding(AppSpacing.Medium)) {
                     Text("Data", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(AppSpacing.Medium))
                     
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -205,7 +212,7 @@ fun SettingsScreen(viewModel: AppViewModel) {
                         }
                     }
                     
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(AppSpacing.Medium))
                     
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -224,10 +231,26 @@ fun SettingsScreen(viewModel: AppViewModel) {
         }
 
         item {
-            Card(modifier = Modifier.fillMaxWidth()) {
-                Column(modifier = Modifier.padding(16.dp)) {
+            var showAboutDialog by remember { mutableStateOf(false) }
+            if (showAboutDialog) {
+                AboutDialog(onDismiss = { showAboutDialog = false })
+            }
+            val aboutInteractionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .bounceClick(aboutInteractionSource, MaterialTheme.shapes.medium)
+                    .clickable(
+                        interactionSource = aboutInteractionSource,
+                        indication = ripple(color = MaterialTheme.colorScheme.onSurface)
+                    ) {
+                        showAboutDialog = true
+                    },
+                shape = MaterialTheme.shapes.medium
+            ) {
+                Column(modifier = Modifier.padding(AppSpacing.Medium)) {
                     Text("About", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(AppSpacing.Small))
                     Text("CATlyst - Minimalist CAT prep tracker", style = MaterialTheme.typography.bodyMedium)
                 }
             }

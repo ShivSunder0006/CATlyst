@@ -1,5 +1,9 @@
 package com.example.ui.stats
 
+import com.example.ui.theme.AppSpacing
+
+import androidx.compose.material3.MaterialTheme
+
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
@@ -10,7 +14,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.example.data.Session
-import com.example.ui.home.bounceClick
+import com.example.ui.theme.bounceClick
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.shape.RoundedCornerShape
 
@@ -30,9 +34,9 @@ fun EditSessionSheet(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 24.dp)
+                .padding(horizontal = AppSpacing.Large)
                 .padding(bottom = 32.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            verticalArrangement = Arrangement.spacedBy(AppSpacing.Medium)
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -55,7 +59,7 @@ fun EditSessionSheet(
             Text("Section", style = MaterialTheme.typography.labelLarge)
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                horizontalArrangement = Arrangement.spacedBy(AppSpacing.Small)
             ) {
                 listOf("VARC", "LRDI", "Quant").forEach { s ->
                     FilterChip(
@@ -82,7 +86,7 @@ fun EditSessionSheet(
                 modifier = Modifier.fillMaxWidth()
             )
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(AppSpacing.Medium))
             val saveInteractionSource = remember { MutableInteractionSource() }
             Button(
                 onClick = {
@@ -93,8 +97,8 @@ fun EditSessionSheet(
                     }
                 },
                 interactionSource = saveInteractionSource,
-                modifier = Modifier.fillMaxWidth().height(56.dp).bounceClick(saveInteractionSource, RoundedCornerShape(16.dp)),
-                shape = RoundedCornerShape(16.dp)
+                modifier = Modifier.fillMaxWidth().height(56.dp).bounceClick(saveInteractionSource, MaterialTheme.shapes.medium),
+                shape = MaterialTheme.shapes.medium
             ) {
                 Text("Save Changes")
             }

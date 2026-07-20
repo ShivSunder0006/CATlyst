@@ -1,4 +1,11 @@
 package com.example.ui.home
+import com.example.ui.theme.bounceClick
+
+import com.example.ui.theme.AppSpacing
+
+import androidx.compose.material3.MaterialTheme
+
+import com.example.ui.theme.AppMotion
 
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.animateFloatAsState
@@ -57,15 +64,6 @@ import com.example.ui.AppViewModel
 import com.example.ui.HomeUiState
 import java.util.Calendar
 
-@Composable
-fun Modifier.bounceClick(
-    interactionSource: MutableInteractionSource = remember { MutableInteractionSource() },
-    shape: androidx.compose.ui.graphics.Shape = RoundedCornerShape(24.dp)
-): Modifier {
-    val isPressed by interactionSource.collectIsPressedAsState()
-    val scale by animateFloatAsState(if (isPressed) 0.95f else 1f, spring(), label = "bounceScale")
-    return this.scale(scale)
-}
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -161,8 +159,8 @@ fun HomeScreen(viewModel: AppViewModel) {
                 val isSelected = uiState.selectedSection == section
                 Box(
                     modifier = Modifier
-                        .padding(horizontal = 4.dp)
-                        .clip(RoundedCornerShape(50))
+                        .padding(horizontal = AppSpacing.ExtraSmall)
+                        .clip(CircleShape)
                         .background(
                             if (isSelected) MaterialTheme.colorScheme.secondaryContainer 
                             else MaterialTheme.colorScheme.surface.copy(alpha = 0.5f)
@@ -170,7 +168,7 @@ fun HomeScreen(viewModel: AppViewModel) {
                         .border(
                             width = if (isSelected) 0.dp else 1.dp,
                             color = if (isSelected) Color.Transparent else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.2f),
-                            shape = RoundedCornerShape(50)
+                            shape = CircleShape
                         )
                         .clickable { viewModel.updateSection(section) }
                         .semantics {
@@ -190,12 +188,12 @@ fun HomeScreen(viewModel: AppViewModel) {
             }
         }
 
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(AppSpacing.Large))
 
         // Stats Summary Row
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(16.dp)
+            horizontalArrangement = Arrangement.spacedBy(AppSpacing.Medium)
         ) {
             StatCard(title = "Total", value = totalSolved.toString(), modifier = Modifier.weight(1f))
             StatCard(title = "Today", value = todaySolved.toString(), modifier = Modifier.weight(1f))
@@ -247,7 +245,7 @@ fun HomeScreen(viewModel: AppViewModel) {
                 )
                 val trackColor = MaterialTheme.colorScheme.surfaceVariant
                 
-                val animatedProgress by animateFloatAsState(targetValue = targetProgress, animationSpec = tween(500), label = "circularProgress")
+                val animatedProgress by animateFloatAsState(targetValue = targetProgress, animationSpec = AppMotion.success(), label = "circularProgress")
                 
                 val errorColor = MaterialTheme.colorScheme.error
                 Canvas(modifier = Modifier.size(240.dp)) {
@@ -290,7 +288,7 @@ fun HomeScreen(viewModel: AppViewModel) {
                         pulseScale = 1f
                     }
                 }
-                val animatedPulse by animateFloatAsState(targetValue = pulseScale, animationSpec = tween(200), label = "pulse")
+                val animatedPulse by animateFloatAsState(targetValue = pulseScale, animationSpec = AppMotion.quick(), label = "pulse")
                 
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
@@ -308,19 +306,19 @@ fun HomeScreen(viewModel: AppViewModel) {
                             letterSpacing = 2.sp
                         )
                     }
-                    Spacer(modifier = Modifier.height(4.dp))
+                    Spacer(modifier = Modifier.height(AppSpacing.ExtraSmall))
                     Row(verticalAlignment = Alignment.Bottom) {
                         AnimatedContent(
                             targetState = count,
                             transitionSpec = {
                                 if (isReducedMotion) {
-                                    fadeIn(animationSpec = tween(150)).togetherWith(fadeOut(animationSpec = tween(150)))
+                                    fadeIn(animationSpec = AppMotion.quick()).togetherWith(fadeOut(animationSpec = AppMotion.quick()))
                                 } else if (targetState > initialState) {
-                                    (slideInVertically(animationSpec = tween(150)) { height -> height } + fadeIn(animationSpec = tween(150)))
-                                        .togetherWith(slideOutVertically(animationSpec = tween(150)) { height -> -height } + fadeOut(animationSpec = tween(150)))
+                                    (slideInVertically(animationSpec = AppMotion.quick()) { height -> height } + fadeIn(animationSpec = AppMotion.quick()))
+                                        .togetherWith(slideOutVertically(animationSpec = AppMotion.quick()) { height -> -height } + fadeOut(animationSpec = AppMotion.quick()))
                                 } else {
-                                    (slideInVertically(animationSpec = tween(150)) { height -> -height } + fadeIn(animationSpec = tween(150)))
-                                        .togetherWith(slideOutVertically(animationSpec = tween(150)) { height -> height } + fadeOut(animationSpec = tween(150)))
+                                    (slideInVertically(animationSpec = AppMotion.quick()) { height -> -height } + fadeIn(animationSpec = AppMotion.quick()))
+                                        .togetherWith(slideOutVertically(animationSpec = AppMotion.quick()) { height -> height } + fadeOut(animationSpec = AppMotion.quick()))
                                 }
                             },
                             label = "counter_animation"
@@ -341,7 +339,7 @@ fun HomeScreen(viewModel: AppViewModel) {
                             )
                         }
                     }
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(AppSpacing.Small))
                     Text(
                         text = "Questions",
                         fontSize = 14.sp,
@@ -357,7 +355,7 @@ fun HomeScreen(viewModel: AppViewModel) {
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.primary,
                             modifier = Modifier
-                                .background(MaterialTheme.colorScheme.primaryContainer, RoundedCornerShape(16.dp))
+                                .background(MaterialTheme.colorScheme.primaryContainer, MaterialTheme.shapes.medium)
                                 .padding(horizontal = 12.dp, vertical = 6.dp)
                         )
                     }
@@ -390,7 +388,7 @@ fun HomeScreen(viewModel: AppViewModel) {
 
                 IconButton(
                     onClick = { showDiscardDialog = true },
-                    modifier = Modifier.align(Alignment.TopEnd).padding(8.dp)
+                    modifier = Modifier.align(Alignment.TopEnd).padding(AppSpacing.Small)
                 ) {
                     Icon(
                         imageVector = Icons.Default.Close,
@@ -405,7 +403,7 @@ fun HomeScreen(viewModel: AppViewModel) {
         // Main Controls (One-Handed Focus)
         Column(
             modifier = Modifier.fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(24.dp)
+            verticalArrangement = Arrangement.spacedBy(AppSpacing.Large)
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -418,7 +416,7 @@ fun HomeScreen(viewModel: AppViewModel) {
                     modifier = Modifier
                         .size(80.dp)
                         .bounceClick(minusInteractionSource)
-                        .clip(RoundedCornerShape(24.dp))
+                        .clip(MaterialTheme.shapes.large)
                         .background(MaterialTheme.colorScheme.primaryContainer)
                         .clickable(
                             interactionSource = minusInteractionSource, 
@@ -445,8 +443,8 @@ fun HomeScreen(viewModel: AppViewModel) {
                 Box(
                     modifier = Modifier
                         .size(112.dp)
-                        .bounceClick(plusInteractionSource, RoundedCornerShape(40.dp))
-                        .clip(RoundedCornerShape(40.dp))
+                        .bounceClick(plusInteractionSource, CircleShape)
+                        .clip(CircleShape)
                         .background(MaterialTheme.colorScheme.primary)
                         .combinedClickable(
                             interactionSource = plusInteractionSource,
@@ -487,7 +485,7 @@ fun HomeScreen(viewModel: AppViewModel) {
                     androidx.compose.material3.DropdownMenu(
                         expanded = showQuickAdd,
                         onDismissRequest = { showQuickAdd = false },
-                        modifier = Modifier.background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(12.dp))
+                        modifier = Modifier.background(MaterialTheme.colorScheme.surfaceVariant, MaterialTheme.shapes.medium)
                     ) {
                         androidx.compose.material3.DropdownMenuItem(
                             text = { Text("+5", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary) },
@@ -534,8 +532,8 @@ fun HomeScreen(viewModel: AppViewModel) {
                 },
                 enabled = !showCheckmark && uiState.currentSessionCount > 0,
                 interactionSource = saveInteractionSource,
-                modifier = Modifier.fillMaxWidth().height(56.dp).bounceClick(saveInteractionSource, RoundedCornerShape(16.dp)),
-                shape = RoundedCornerShape(16.dp),
+                modifier = Modifier.fillMaxWidth().height(56.dp).bounceClick(saveInteractionSource, MaterialTheme.shapes.medium),
+                shape = MaterialTheme.shapes.medium,
                 colors = ButtonDefaults.buttonColors(
                     containerColor = MaterialTheme.colorScheme.primary,
                     contentColor = MaterialTheme.colorScheme.onPrimary
@@ -561,14 +559,14 @@ fun StatCard(title: String, value: String, modifier: Modifier = Modifier) {
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface
         ),
-        shape = RoundedCornerShape(24.dp),
+        shape = MaterialTheme.shapes.large,
         border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.1f)),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
+                .padding(AppSpacing.Medium),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
@@ -578,11 +576,11 @@ fun StatCard(title: String, value: String, modifier: Modifier = Modifier) {
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 letterSpacing = 1.sp
             )
-            Spacer(modifier = Modifier.height(4.dp))
+            Spacer(modifier = Modifier.height(AppSpacing.ExtraSmall))
             
             var animatedValue by remember { mutableIntStateOf(0) }
             LaunchedEffect(value) { animatedValue = value.toIntOrNull() ?: 0 }
-            val displayedValue by animateIntAsState(targetValue = animatedValue, animationSpec = tween(500), label = "statValue")
+            val displayedValue by animateIntAsState(targetValue = animatedValue, animationSpec = AppMotion.success(), label = "statValue")
             
             Text(
                 text = displayedValue.toString(),
@@ -619,7 +617,7 @@ fun GoalPickerSheet(
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold
             )
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(AppSpacing.Large))
             
             val listState = androidx.compose.foundation.lazy.rememberLazyListState(
                 initialFirstVisibleItemIndex = maxOf(0, options.indexOf(selectedValue))
@@ -652,7 +650,7 @@ fun GoalPickerSheet(
                         .fillMaxWidth()
                         .padding(horizontal = 32.dp)
                         .height(itemHeight)
-                        .clip(RoundedCornerShape(16.dp))
+                        .clip(MaterialTheme.shapes.medium)
                         .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.3f))
                 )
                 
@@ -707,9 +705,9 @@ fun GoalPickerSheet(
                 )
             }
             
-            Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(AppSpacing.ExtraLarge))
             Row(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp),
+                modifier = Modifier.fillMaxWidth().padding(horizontal = AppSpacing.Large),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 TextButton(onClick = onDismiss) {
@@ -719,8 +717,8 @@ fun GoalPickerSheet(
                 Button(
                     onClick = { onGoalSelected(selectedValue) },
                     interactionSource = doneInteractionSource,
-                    modifier = Modifier.bounceClick(doneInteractionSource, RoundedCornerShape(16.dp)),
-                    shape = RoundedCornerShape(16.dp),
+                    modifier = Modifier.bounceClick(doneInteractionSource, MaterialTheme.shapes.medium),
+                    shape = MaterialTheme.shapes.medium,
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary, contentColor = MaterialTheme.colorScheme.onPrimary)
                 ) {
                     Text("Done")
