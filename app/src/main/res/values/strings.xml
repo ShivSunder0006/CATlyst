@@ -1,3 +1,12 @@
 <resources>
     <string name="app_name">CATlyst</string>
+    <string name="widget_daily_progress_name">Daily Progress</string>
+    <string name="widget_daily_progress_desc">View your daily solved questions and goal progress.</string>
+    <string name="widget_quick_session_name">Quick Session</string>
+    <string name="widget_quick_session_desc">Quick glance at your active practice session.</string>
+    <string name="widget_dashboard_name">Dashboard</string>
+    <string name="widget_dashboard_desc">Your CAT prep statistics at a glance.</string>
+    <string name="widget_quick_launch_name">Quick Launch</string>
+    <string name="widget_quick_launch_desc">Shortcuts to start a session, view history, and more.</string>
+    <string name="widget_config_title">Widget Configuration</string>
 </resources>
